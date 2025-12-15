@@ -1,0 +1,3303 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>سفرة الدار | Driver</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="apple-touch-icon" href="https://archive.org/download/20251202_20251202_1107/%D8%B3%D9%81%D8%B1%D8%A9%20%D8%A7%D9%84%D8%AF%D8%A7%D8%B1.jpg">
+    <link rel="icon" href="https://archive.org/download/20251202_20251202_1107/%D8%B3%D9%81%D8%B1%D8%A9%20%D8%A7%D9%84%D8%AF%D8%A7%D8%B1.jpg">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Leaflet Routing Machine CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    
+    <style>
+        :root {
+            --primary: #ff6600;
+            --primary-dark: #cc5200;
+            --primary-light: #ff944d;
+            --success: #00c851;
+            --success-dark: #00943a;
+            --info: #33b5e5;
+            --warning: #ffbb33;
+            --danger: #ff4444;
+            --dark: #121212;
+            --darker: #0a0a0a;
+            --card: #1e1e1e;
+            --card-light: #2a2a2a;
+            --text: #ffffff;
+            --text-gray: #aaaaaa;
+            --border: #333333;
+            
+            --driver-status-ready: #00c851;
+            --driver-status-busy: #ffbb33;
+            --driver-status-offline: #ff4444;
+            
+            --order-status-new: #33b5e5;
+            --order-status-preparing: #ffbb33;
+            --order-status-ready: #00c851;
+            --order-status-picked: #9c27b0;
+            --order-status-delivered: #4CAF50;
+            --order-status-cancelled: #ff4444;
+        }
+        
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            margin: 0;
+            padding: 0;
+        }
+        
+        html, body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
+        
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: var(--dark);
+            color: var(--text);
+            position: relative;
+        }
+        
+        /* Header */
+        .app-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: rgba(18, 18, 18, 0.98);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            justify-content: space-between;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid var(--primary);
+            object-fit: cover;
+        }
+        
+        .brand-text {
+            font-size: 1.1rem;
+            font-weight: 900;
+            color: var(--text);
+        }
+        
+        .driver-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            cursor: pointer;
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--driver-status-offline);
+            animation: pulse 2s infinite;
+        }
+        
+        .status-indicator.online {
+            background: var(--driver-status-ready);
+        }
+        
+        .status-indicator.busy {
+            background: var(--driver-status-busy);
+            animation: none;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .status-text {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-gray);
+        }
+        
+        .status-text.online {
+            color: var(--driver-status-ready);
+        }
+        
+        .status-text.busy {
+            color: var(--driver-status-busy);
+        }
+        
+        /* Connection Status */
+        .connection-status {
+            position: fixed;
+            top: 70px;
+            right: 15px;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: slideDown 0.3s ease;
+        }
+        
+        .connection-status.connected {
+            background: rgba(0, 200, 81, 0.2);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+        
+        .connection-status.disconnected {
+            background: rgba(255, 68, 68, 0.2);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+            animation: pulse 1.5s infinite;
+        }
+        
+        /* Main Layout */
+        .main-container {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        /* Map Container */
+        .map-container {
+            flex: 1;
+            position: relative;
+            background: #2a2a2a;
+            z-index: 1;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Orders Panel */
+        .orders-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60vh;
+            background: var(--darker);
+            border-top: 1px solid var(--border);
+            border-radius: 20px 20px 0 0;
+            z-index: 900;
+            display: flex;
+            flex-direction: column;
+            transform: translateY(calc(100% - 60px));
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
+        }
+        
+        .orders-panel.expanded {
+            transform: translateY(0);
+        }
+        
+        .panel-handle {
+            width: 100%;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+        
+        .handle-bar {
+            width: 40px;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+        }
+        
+        .panel-header {
+            padding: 15px;
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .panel-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .panel-title h2 {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--text);
+            margin: 0;
+        }
+        
+        .orders-count {
+            background: var(--primary);
+            color: #000;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 800;
+            font-size: 0.9rem;
+        }
+        
+        .tabs {
+            display: flex;
+            background: #2a2a2a;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            background: transparent;
+            border: none;
+            color: var(--text-gray);
+            font-family: 'Cairo';
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 0.9rem;
+        }
+        
+        .tab-btn.active {
+            background: var(--primary);
+            color: #000;
+        }
+        
+        .orders-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .order-card {
+            background: var(--card);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .order-card:hover, .order-card:active {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            border-color: var(--primary);
+        }
+        
+        .order-card.active {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(255, 102, 0, 0.3);
+        }
+        
+        .order-card.new {
+            border-left: 4px solid var(--order-status-new);
+        }
+        
+        .order-card.preparing {
+            border-left: 4px solid var(--order-status-preparing);
+        }
+        
+        .order-card.ready {
+            border-left: 4px solid var(--order-status-ready);
+        }
+        
+        .order-card.picked {
+            border-left: 4px solid var(--order-status-picked);
+        }
+        
+        .order-header {
+            padding: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            background: rgba(0,0,0,0.2);
+        }
+        
+        .order-id {
+            font-size: 1.2rem;
+            font-weight: 900;
+            color: var(--primary);
+        }
+        
+        .order-status-badge {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-align: center;
+            min-width: 85px;
+        }
+        
+        .status-new {
+            background: rgba(51, 181, 229, 0.2);
+            color: var(--order-status-new);
+            border: 1px solid var(--order-status-new);
+        }
+        
+        .status-preparing {
+            background: rgba(255, 187, 51, 0.2);
+            color: var(--order-status-preparing);
+            border: 1px solid var(--order-status-preparing);
+            animation: pulse 1.5s infinite;
+        }
+        
+        .status-ready {
+            background: rgba(0, 200, 81, 0.2);
+            color: var(--order-status-ready);
+            border: 1px solid var(--order-status-ready);
+            animation: pulse 1s infinite;
+        }
+        
+        .status-picked {
+            background: rgba(156, 39, 176, 0.2);
+            color: var(--order-status-picked);
+            border: 1px solid var(--order-status-picked);
+        }
+        
+        .status-delivered {
+            background: rgba(76, 175, 80, 0.2);
+            color: var(--order-status-delivered);
+            border: 1px solid var(--order-status-delivered);
+        }
+        
+        .order-body {
+            padding: 12px;
+        }
+        
+        .order-customer {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .customer-avatar {
+            width: 35px;
+            height: 35px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000;
+            font-weight: 800;
+            font-size: 1rem;
+        }
+        
+        .customer-info {
+            flex: 1;
+        }
+        
+        .customer-name {
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 3px;
+        }
+        
+        .customer-phone {
+            color: var(--text-gray);
+            font-size: 0.8rem;
+            direction: ltr;
+            text-align: right;
+        }
+        
+        .order-items {
+            margin-bottom: 12px;
+        }
+        
+        .order-items-title {
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: var(--text-gray);
+            font-size: 0.85rem;
+        }
+        
+        .order-items-list {
+            list-style: none;
+            max-height: 60px;
+            overflow-y: auto;
+            padding-left: 12px;
+        }
+        
+        .order-item {
+            padding: 4px 0;
+            color: var(--text);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .order-item::before {
+            content: "•";
+            color: var(--primary);
+            margin-left: 6px;
+            font-size: 1.1rem;
+        }
+        
+        .order-footer {
+            padding: 12px;
+            background: rgba(0,0,0,0.2);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .order-total {
+            font-weight: 900;
+            font-size: 1.2rem;
+            color: var(--primary);
+        }
+        
+        .order-time {
+            color: var(--text-gray);
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .order-actions {
+            display: flex;
+            gap: 8px;
+            padding: 12px;
+            border-top: 1px solid var(--border);
+            background: rgba(0,0,0,0.1);
+        }
+        
+        .action-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Cairo';
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+        
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .btn-pickup {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #000;
+        }
+        
+        .btn-pickup:hover:not(:disabled), .btn-pickup:active:not(:disabled) {
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 102, 0, 0.3);
+        }
+        
+        .btn-delivered {
+            background: linear-gradient(135deg, var(--success) 0%, var(--success-dark) 100%);
+            color: white;
+        }
+        
+        .btn-delivered:hover:not(:disabled), .btn-delivered:active:not(:disabled) {
+            background: linear-gradient(135deg, var(--success) 0%, #00b248 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 200, 81, 0.3);
+        }
+        
+        /* Map Controls */
+        .map-controls {
+            position: absolute;
+            bottom: calc(60vh + 15px);
+            right: 15px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .map-control-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: var(--card);
+            border: 2px solid var(--border);
+            color: var(--text);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .map-control-btn:hover, .map-control-btn:active {
+            background: var(--primary);
+            color: #000;
+            border-color: var(--primary);
+            transform: scale(1.1);
+        }
+        
+        /* Status Modal */
+        .status-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .status-modal.active {
+            display: flex;
+        }
+        
+        .status-modal-content {
+            background: linear-gradient(135deg, var(--card) 0%, var(--darker) 100%);
+            border-radius: 20px;
+            padding: 25px;
+            width: 100%;
+            max-width: 400px;
+            border: 2px solid var(--border);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            animation: modalSlideUp 0.3s ease;
+        }
+        
+        @keyframes modalSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .status-modal-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        
+        .status-modal-header h3 {
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+        
+        .status-modal-header p {
+            color: var(--text-gray);
+            font-size: 0.9rem;
+        }
+        
+        .status-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+        
+        .status-option {
+            padding: 18px;
+            border-radius: 12px;
+            background: var(--card-light);
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .status-option:hover, .status-option:active {
+            background: rgba(255, 102, 0, 0.1);
+            border-color: var(--primary);
+        }
+        
+        .status-option.active {
+            background: rgba(255, 102, 0, 0.2);
+            border-color: var(--primary);
+            box-shadow: 0 0 20px rgba(255, 102, 0, 0.2);
+        }
+        
+        .status-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            color: #000;
+        }
+        
+        .status-icon.online {
+            background: var(--driver-status-ready);
+        }
+        
+        .status-icon.busy {
+            background: var(--driver-status-busy);
+        }
+        
+        .status-icon.offline {
+            background: var(--driver-status-offline);
+        }
+        
+        .status-info {
+            flex: 1;
+        }
+        
+        .status-title {
+            font-weight: 800;
+            font-size: 1.1rem;
+            margin-bottom: 4px;
+        }
+        
+        .status-description {
+            color: var(--text-gray);
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+        
+        .status-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .status-btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-family: 'Cairo';
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+        
+        .status-btn.confirm {
+            background: linear-gradient(135deg, var(--success) 0%, var(--success-dark) 100%);
+            color: white;
+        }
+        
+        .status-btn.confirm:hover, .status-btn.confirm:active {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 200, 81, 0.3);
+        }
+        
+        .status-btn.cancel {
+            background: transparent;
+            border: 2px solid var(--border);
+            color: var(--text-gray);
+        }
+        
+        .status-btn.cancel:hover, .status-btn.cancel:active {
+            background: var(--card-light);
+            color: var(--text);
+        }
+        
+        /* Order Details Modal */
+        .order-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.98);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+        
+        .order-modal.active {
+            display: flex;
+        }
+        
+        .order-modal-content {
+            background: linear-gradient(135deg, var(--card) 0%, var(--darker) 100%);
+            border-radius: 20px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            border: 2px solid var(--border);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            animation: modalSlideUp 0.3s ease;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .order-modal-header {
+            padding: 18px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(0,0,0,0.2);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .order-modal-header h3 {
+            font-size: 1.4rem;
+            font-weight: 900;
+            color: var(--primary);
+            margin: 0;
+        }
+        
+        .close-modal {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: var(--card-light);
+            border: none;
+            color: var(--text);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            transition: 0.3s;
+        }
+        
+        .close-modal:hover, .close-modal:active {
+            background: var(--danger);
+            color: white;
+            transform: rotate(90deg);
+        }
+        
+        .order-modal-body {
+            padding: 18px;
+        }
+        
+        .order-detail-section {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .order-detail-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        
+        .section-title {
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: var(--primary);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .detail-item {
+            background: var(--card-light);
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+        
+        .detail-label {
+            color: var(--text-gray);
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+        }
+        
+        .detail-value {
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        
+        .notes-container {
+            background: #332b00;
+            border: 1px solid #665500;
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 10px;
+        }
+        
+        .notes-title {
+            color: #ffdd44;
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .notes-content {
+            color: #ffdd44;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        
+        /* Order Tracking */
+        .order-tracking {
+            position: relative;
+            padding: 15px 0;
+        }
+        
+        .tracking-timeline {
+            position: relative;
+            padding-right: 25px;
+        }
+        
+        .tracking-timeline::before {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--border);
+            border-radius: 2px;
+        }
+        
+        .tracking-step {
+            position: relative;
+            margin-bottom: 25px;
+            padding-right: 35px;
+        }
+        
+        .tracking-step:last-child {
+            margin-bottom: 0;
+        }
+        
+        .tracking-step.active .tracking-icon {
+            background: var(--primary);
+            color: #000;
+            box-shadow: 0 0 0 5px rgba(255, 102, 0, 0.2);
+        }
+        
+        .tracking-step.completed .tracking-icon {
+            background: var(--success);
+            color: white;
+        }
+        
+        .tracking-step.pending .tracking-icon {
+            background: var(--card-light);
+            color: var(--text-gray);
+        }
+        
+        .tracking-icon {
+            position: absolute;
+            right: -10px;
+            top: 0;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            z-index: 2;
+            transition: all 0.3s ease;
+        }
+        
+        .tracking-info {
+            padding-top: 5px;
+        }
+        
+        .tracking-title {
+            font-weight: 800;
+            margin-bottom: 4px;
+            font-size: 1rem;
+        }
+        
+        .tracking-step.active .tracking-title {
+            color: var(--primary);
+        }
+        
+        .tracking-step.completed .tracking-title {
+            color: var(--success);
+        }
+        
+        .tracking-desc {
+            color: var(--text-gray);
+            font-size: 0.85rem;
+        }
+        
+        /* Alert Notification */
+        .alert-notification {
+            position: fixed;
+            bottom: 15px;
+            right: 15px;
+            left: 15px;
+            background: linear-gradient(135deg, var(--card) 0%, #1a2b3c 100%);
+            border-radius: 12px;
+            padding: 15px;
+            border-left: 5px solid var(--order-status-new);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            z-index: 2000;
+        }
+        
+        .alert-notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .alert-title {
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: var(--order-status-new);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .alert-close {
+            background: transparent;
+            border: none;
+            color: var(--text-gray);
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 5px;
+        }
+        
+        .alert-body {
+            font-size: 0.9rem;
+            color: var(--text);
+            line-height: 1.5;
+        }
+        
+        .alert-order-id {
+            font-weight: 900;
+            color: var(--primary);
+            margin: 5px 0;
+        }
+        
+        /* Current Delivery Info */
+        .current-delivery {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            right: 15px;
+            background: rgba(18, 18, 18, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 15px;
+            padding: 15px;
+            border: 2px solid var(--primary);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 1000;
+            display: none;
+            animation: slideDown 0.3s ease;
+        }
+        
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .current-delivery.active {
+            display: block;
+        }
+        
+        .current-delivery-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .current-delivery-title {
+            font-weight: 900;
+            font-size: 1.2rem;
+            color: var(--primary);
+        }
+        
+        .current-delivery-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        
+        .current-delivery-item {
+            background: rgba(255, 102, 0, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 102, 0, 0.2);
+        }
+        
+        .current-delivery-label {
+            font-size: 0.85rem;
+            color: var(--text-gray);
+            margin-bottom: 4px;
+        }
+        
+        .current-delivery-value {
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        
+        /* Progress Bar */
+        .progress-bar {
+            height: 5px;
+            background: var(--border);
+            border-radius: 3px;
+            margin: 12px 0;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px 15px;
+            color: var(--text-gray);
+        }
+        
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.3;
+        }
+        
+        .empty-title {
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+        
+        .empty-description {
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        /* Loading */
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-gray);
+            text-align: center;
+        }
+        
+        .spinner {
+            width: 45px;
+            height: 45px;
+            border: 3px solid rgba(255, 102, 0, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Driver Notification */
+        .driver-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+            border: 2px solid #00c851;
+            border-radius: 12px;
+            padding: 15px;
+            width: 300px;
+            max-width: 90%;
+            z-index: 2000;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            animation: slideInRight 0.3s ease;
+        }
+        
+        .notification-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #333;
+        }
+        
+        .notification-header h3 {
+            margin: 0;
+            color: #00c851;
+            font-size: 1.1rem;
+        }
+        
+        .notification-close-btn {
+            margin-right: auto;
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+        
+        .notification-body {
+            margin-bottom: 15px;
+            color: #ccc;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        .notification-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .notification-actions button {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            background: #333;
+            color: white;
+            cursor: pointer;
+            font-family: 'Cairo';
+            font-size: 0.85rem;
+            transition: 0.3s;
+        }
+        
+        .notification-actions button:hover {
+            background: #444;
+        }
+        
+        @keyframes slideInRight {
+            from { transform: translateX(100px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="app-header">
+        <div class="logo-container">
+            <img src="https://archive.org/download/20251202_20251202_1107/%D8%B3%D9%81%D8%B1%D8%A9%20%D8%A7%D9%84%D8%AF%D8%A7%D8%B1.jpg" alt="Logo" class="logo">
+            <div class="brand-text">سفرة الدار | Driver</div>
+        </div>
+        
+        <div class="driver-status" id="driver-status" onclick="openStatusModal()">
+            <div class="status-indicator offline" id="status-indicator"></div>
+            <div class="status-text" id="status-text">غير متصل</div>
+        </div>
+    </header>
+    
+    <!-- Connection Status -->
+    <div class="connection-status" id="connection-status" style="display: none;">
+        <i class="fas fa-wifi"></i>
+        <span>جاري الاتصال...</span>
+    </div>
+    
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Map -->
+        <div class="map-container">
+            <div id="map"></div>
+            
+            <!-- Map Controls -->
+            <div class="map-controls">
+                <button class="map-control-btn" onclick="locateMe()" title="تحديد موقعي">
+                    <i class="fas fa-location-crosshairs"></i>
+                </button>
+                <button class="map-control-btn" onclick="showAllOrdersOnMap()" title="عرض جميع الطلبات">
+                    <i class="fas fa-map-marker-alt"></i>
+                </button>
+            </div>
+            
+            <!-- Current Delivery Info -->
+            <div class="current-delivery" id="current-delivery">
+                <div class="current-delivery-header">
+                    <div class="current-delivery-title">التوصيل الحالي</div>
+                    <button class="close-modal" onclick="hideCurrentDelivery()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="current-delivery-info">
+                    <div class="current-delivery-item">
+                        <div class="current-delivery-label">رقم الطلب</div>
+                        <div class="current-delivery-value" id="current-order-id">#0000</div>
+                    </div>
+                    <div class="current-delivery-item">
+                        <div class="current-delivery-label">المسافة المتبقية</div>
+                        <div class="current-delivery-value" id="current-distance">0 كم</div>
+                    </div>
+                    <div class="current-delivery-item">
+                        <div class="current-delivery-label">الوقت المتوقع</div>
+                        <div class="current-delivery-value" id="current-eta">0 دقيقة</div>
+                    </div>
+                    <div class="current-delivery-item">
+                        <div class="current-delivery-label">العنوان</div>
+                        <div class="current-delivery-value" id="current-address" style="font-size: 0.9rem;">...</div>
+                    </div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="delivery-progress"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Orders Panel -->
+        <div class="orders-panel" id="orders-panel">
+            <div class="panel-handle" onclick="toggleOrdersPanel()">
+                <div class="handle-bar"></div>
+            </div>
+            <div class="panel-header">
+                <div class="panel-title">
+                    <h2>طلباتي</h2>
+                    <div class="orders-count" id="orders-count">0</div>
+                </div>
+                
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchOrdersTab('active')">نشطة</button>
+                    <button class="tab-btn" onclick="switchOrdersTab('picked')">قيد التوصيل</button>
+                    <button class="tab-btn" onclick="switchOrdersTab('completed')">مكتملة</button>
+                </div>
+            </div>
+            
+            <div class="orders-list" id="orders-list">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>جاري تحميل الطلبات...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Status Modal -->
+    <div class="status-modal" id="status-modal">
+        <div class="status-modal-content">
+            <div class="status-modal-header">
+                <h3>حالة السائق</h3>
+                <p>اختر حالتك الحالية</p>
+            </div>
+            
+            <div class="status-options">
+                <div class="status-option" data-status="online" onclick="selectStatus('online')">
+                    <div class="status-icon online">
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <div class="status-info">
+                        <div class="status-title">متاح للتوصيل</div>
+                        <div class="status-description">يمكنك استلام طلبات جديدة</div>
+                    </div>
+                </div>
+                
+                <div class="status-option" data-status="busy" onclick="selectStatus('busy')">
+                    <div class="status-icon busy">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="status-info">
+                        <div class="status-title">مشغول حالياً</div>
+                        <div class="status-description">أقوم بتوصيل طلب حالياً</div>
+                    </div>
+                </div>
+                
+                <div class="status-option" data-status="offline" onclick="selectStatus('offline')">
+                    <div class="status-icon offline">
+                        <i class="fas fa-power-off"></i>
+                    </div>
+                    <div class="status-info">
+                        <div class="status-title">غير متصل</div>
+                        <div class="status-description">لن أتلقى أي طلبات جديدة</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="status-actions">
+                <button class="status-btn cancel" onclick="closeStatusModal()">إلغاء</button>
+                <button class="status-btn confirm" onclick="updateDriverStatus()">تحديث الحالة</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Order Details Modal -->
+    <div class="order-modal" id="order-modal">
+        <div class="order-modal-content">
+            <div class="order-modal-header">
+                <h3>تفاصيل الطلب</h3>
+                <button class="close-modal" onclick="closeOrderModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="order-modal-body" id="order-modal-body">
+                <!-- سيتم ملؤها بالجافاسكريبت -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Alert Notification -->
+    <div class="alert-notification" id="alert-notification">
+        <div class="alert-header">
+            <div class="alert-title">
+                <i class="fas fa-bell"></i>
+                طلب جديد
+            </div>
+            <button class="alert-close" onclick="closeAlert()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="alert-body">
+            يوجد طلب جديد قيد التحضير. سيتم إعلامك عندما يكون جاهزاً للتسليم.
+            <div class="alert-order-id" id="alert-order-id">#0000</div>
+        </div>
+    </div>
+    
+    <!-- Audio for notifications -->
+    <audio id="notification-sound" preload="auto">
+        <source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg">
+    </audio>
+    
+    <audio id="order-ready-sound" preload="auto">
+        <source src="https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3" type="audio/mpeg">
+    </audio>
+    
+    <!-- Scripts -->
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Leaflet Routing Machine -->
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script>
+        // ==============================================
+        // IMPORTANT: قم بتغيير هذا الرابط إلى رابط نشر الـ Google Apps Script الخاص بك
+        // ==============================================
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxZX6iyr40OANq2kusL7zV6bxS4HddyWh04oed9ab1I4mFt1JWzgxTnh5gQvx5YK5Jm/exec';
+        // ==============================================
+        
+        // Global Variables
+        let map;
+        let driverMarker;
+        let orderMarkers = [];
+        let routingControl = null;
+        let currentLocation = null;
+        let driverStatus = 'offline';
+        let driverId = null;
+        let connectionToken = null;
+        let activeOrders = [];
+        let pickedOrders = [];
+        let completedOrders = [];
+        let selectedOrder = null;
+        let currentRoute = null;
+        let pollingInterval = null;
+        let locationInterval = null;
+        let heartbeatInterval = null;
+        let currentTab = 'active';
+        let isConnected = false;
+        
+        // Initialize the application
+        async function init() {
+            try {
+                console.log('🚀 Starting application initialization...');
+                
+                // Initialize driver ID from localStorage or generate new
+                driverId = localStorage.getItem('driverId');
+                if (!driverId) {
+                    driverId = 'DRIVER-' + Date.now().toString().substr(-6);
+                    localStorage.setItem('driverId', driverId);
+                    console.log('Generated new driver ID:', driverId);
+                } else {
+                    console.log('Using existing driver ID:', driverId);
+                }
+                
+                // Load driver status
+                const savedStatus = localStorage.getItem('driverStatus');
+                if (savedStatus) {
+                    driverStatus = savedStatus;
+                    updateDriverStatusUI();
+                    console.log('Loaded driver status:', driverStatus);
+                }
+                
+                // Initialize connection token
+                connectionToken = localStorage.getItem('connectionToken');
+                
+                // Initialize map
+                initMap();
+                
+                // Initialize sounds
+                initSounds();
+                
+                // Initialize touch events for panel
+                initTouchEvents();
+                
+                // Test connection first
+                updateConnectionStatus('جاري اختبار الاتصال...', 'disconnected');
+                const connectionTest = await testAPIConnection();
+                
+                if (connectionTest.success) {
+                    isConnected = true;
+                    updateConnectionStatus('متصل بالنظام', 'connected');
+                    
+                    // Connect to server
+                    const connectResult = await connectToServer();
+                    
+                    if (connectResult.success) {
+                        // Start intervals
+                        startPolling();
+                        startLocationUpdates();
+                        startHeartbeat();
+                        
+                        // Load initial orders
+                        loadOrders();
+                    } else {
+                        updateConnectionStatus('فشل الاتصال بالنظام', 'disconnected');
+                        showError('فشل الاتصال', 'تعذر الاتصال بالنظام. يرجى المحاولة مرة أخرى');
+                    }
+                } else {
+                    isConnected = false;
+                    updateConnectionStatus('فشل الاتصال بالسيرفر', 'disconnected');
+                    showError('خطأ في الاتصال', 'تعذر الاتصال بالسيرفر. يرجى التحقق من اتصال الإنترنت');
+                }
+                
+                // Show status modal if not set
+                if (!savedStatus) {
+                    setTimeout(() => {
+                        openStatusModal();
+                    }, 2000);
+                }
+                
+                console.log('✅ Application initialized successfully');
+                
+            } catch (error) {
+                console.error('❌ Error during initialization:', error);
+                updateConnectionStatus('خطأ في التهيئة', 'disconnected');
+                showError('خطأ في التهيئة', 'حدث خطأ أثناء تهيئة التطبيق');
+            }
+        }
+        
+        // Test API connection
+        async function testAPIConnection() {
+            try {
+                console.log('Testing API connection...');
+                const testUrl = `${API_URL}?action=getSystemStats&t=${Date.now()}`;
+                
+                const response = await fetch(testUrl, {
+                    method: 'GET',
+                    mode: 'no-cors'
+                });
+                
+                console.log('Connection test response:', response);
+                return { success: true, message: 'Connection successful' };
+                
+            } catch (error) {
+                console.error('API connection test failed:', error);
+                
+                // Try with POST method
+                try {
+                    const params = new URLSearchParams();
+                    params.append('action', 'getSystemStats');
+                    params.append('t', Date.now());
+                    
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: params,
+                        mode: 'cors'
+                    });
+                    
+                    if (response.ok) {
+                        return { success: true, message: 'POST connection successful' };
+                    } else {
+                        return { 
+                            success: false, 
+                            message: `HTTP error: ${response.status}` 
+                        };
+                    }
+                } catch (postError) {
+                    console.error('POST connection test also failed:', postError);
+                    return { 
+                        success: false, 
+                        message: postError.message 
+                    };
+                }
+            }
+        }
+        
+        // Update connection status display
+        function updateConnectionStatus(message, status) {
+            const connStatus = document.getElementById('connection-status');
+            if (!connStatus) return;
+            
+            connStatus.innerHTML = `<i class="fas fa-${status === 'connected' ? 'wifi' : 'wifi-slash'}"></i> <span>${message}</span>`;
+            connStatus.className = `connection-status ${status}`;
+            connStatus.style.display = 'flex';
+            
+            // Auto-hide success messages after 5 seconds
+            if (status === 'connected') {
+                setTimeout(() => {
+                    if (connStatus.className.includes('connected')) {
+                        connStatus.style.display = 'none';
+                    }
+                }, 5000);
+            }
+        }
+        
+        // Initialize map
+        function initMap() {
+            // Default location (Kuwait)
+            const defaultLocation = [29.3759, 47.9774];
+            
+            // Create map
+            map = L.map('map', {
+                zoomControl: false,
+                attributionControl: false,
+                dragging: true,
+                touchZoom: true,
+                scrollWheelZoom: false,
+                doubleClickZoom: true,
+                boxZoom: false,
+                keyboard: false
+            }).setView(defaultLocation, 13);
+            
+            // Add tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(map);
+            
+            // Add custom zoom control for mobile
+            L.control.zoom({
+                position: 'bottomright'
+            }).addTo(map);
+            
+            // Try to get current location
+            locateMe();
+        }
+        
+        // Initialize notification sounds
+        function initSounds() {
+            try {
+                const notificationSound = document.getElementById('notification-sound');
+                const orderReadySound = document.getElementById('order-ready-sound');
+                
+                if (notificationSound) notificationSound.volume = 0.3;
+                if (orderReadySound) orderReadySound.volume = 0.3;
+                
+                // Preload sounds
+                notificationSound.load();
+                orderReadySound.load();
+                
+                console.log('✅ Sounds initialized');
+            } catch (e) {
+                console.log('Sound initialization failed:', e);
+            }
+        }
+        
+        // Initialize touch events for panel
+        function initTouchEvents() {
+            const panel = document.getElementById('orders-panel');
+            let startY = 0;
+            let currentY = 0;
+            let isDragging = false;
+            
+            panel.addEventListener('touchstart', (e) => {
+                if (e.target.closest('.panel-handle')) {
+                    startY = e.touches[0].clientY;
+                    currentY = startY;
+                    isDragging = true;
+                    panel.style.transition = 'none';
+                }
+            }, { passive: true });
+            
+            panel.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+                
+                currentY = e.touches[0].clientY;
+                const diff = startY - currentY;
+                const panelHeight = window.innerHeight * 0.6;
+                
+                if (diff > 0) {
+                    // Swiping up - expand
+                    const translateY = Math.max(0, (panelHeight - diff));
+                    panel.style.transform = `translateY(${translateY}px)`;
+                } else {
+                    // Swiping down - collapse
+                    const translateY = Math.min(panelHeight - 60, -diff);
+                    panel.style.transform = `translateY(calc(100% - 60px + ${translateY}px))`;
+                }
+            }, { passive: true });
+            
+            panel.addEventListener('touchend', () => {
+                if (!isDragging) return;
+                
+                isDragging = false;
+                panel.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+                
+                const panelHeight = window.innerHeight * 0.6;
+                const currentTransform = panel.style.transform;
+                const currentTranslate = parseInt(currentTransform.match(/translateY\(([^)]+)\)/)[1]) || 0;
+                
+                if (currentTranslate < panelHeight / 2) {
+                    // Expand
+                    panel.classList.add('expanded');
+                } else {
+                    // Collapse
+                    panel.classList.remove('expanded');
+                }
+            }, { passive: true });
+            
+            console.log('✅ Touch events initialized');
+        }
+        
+        // Show error message
+        function showError(title, message) {
+            console.error(`Error: ${title} - ${message}`);
+            
+            Swal.fire({
+                icon: 'error',
+                title: title,
+                text: message,
+                confirmButtonText: 'حسناً',
+                background: '#222',
+                color: '#fff'
+            });
+        }
+        
+        // Connect to server
+        async function connectToServer() {
+            try {
+                console.log('Connecting to server...');
+                updateConnectionStatus('جاري الاتصال بالسيرفر...', 'disconnected');
+                
+                const params = new URLSearchParams();
+                params.append('action', 'driverConnect');
+                params.append('driverId', driverId);
+                params.append('status', driverStatus);
+                params.append('name', 'سائق ' + driverId.substr(-4));
+                params.append('timestamp', Date.now());
+                
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: params,
+                    mode: 'cors'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Server response:', data);
+                
+                if (data.result === 'success') {
+                    connectionToken = data.connectionToken;
+                    localStorage.setItem('connectionToken', connectionToken);
+                    
+                    console.log('✅ Connected successfully, token:', connectionToken);
+                    updateConnectionStatus('متصل بالنظام', 'connected');
+                    
+                    return { success: true, data: data };
+                } else {
+                    throw new Error(data.message || 'فشل الاتصال');
+                }
+            } catch (error) {
+                console.error('❌ Connection failed:', error);
+                updateConnectionStatus('فشل الاتصال', 'disconnected');
+                return { success: false, error: error.message };
+            }
+        }
+        
+        // Send heartbeat to server
+        async function sendHeartbeat() {
+            if (!connectionToken) {
+                console.log('No connection token, reconnecting...');
+                const result = await connectToServer();
+                if (!result.success) return;
+            }
+            
+            try {
+                const params = new URLSearchParams();
+                params.append('action', 'driverHeartbeat');
+                params.append('driverId', driverId);
+                params.append('connectionToken', connectionToken);
+                params.append('timestamp', Date.now());
+                
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: params,
+                    mode: 'cors'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('فشل إرسال النبض');
+                }
+                
+                const data = await response.json();
+                
+                if (data.result === 'success') {
+                    console.log('✅ Heartbeat sent successfully');
+                } else if (data.message === 'رمز الاتصال غير صالح' || data.shouldReconnect) {
+                    console.log('Token invalid, reconnecting...');
+                    await connectToServer();
+                }
+            } catch (error) {
+                console.error('❌ Error sending heartbeat:', error);
+            }
+        }
+        
+        // Start heartbeat interval
+        function startHeartbeat() {
+            if (heartbeatInterval) {
+                clearInterval(heartbeatInterval);
+            }
+            
+            heartbeatInterval = setInterval(() => {
+                if (driverStatus !== 'offline' && isConnected) {
+                    sendHeartbeat();
+                }
+            }, 30000); // Send heartbeat every 30 seconds
+            
+            console.log('✅ Heartbeat interval started');
+        }
+        
+        // Start polling for new orders
+        function startPolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+            }
+            
+            pollingInterval = setInterval(() => {
+                if (driverStatus !== 'offline' && isConnected) {
+                    loadOrders();
+                }
+            }, 8000); // Poll every 8 seconds
+            
+            console.log('✅ Polling interval started');
+        }
+        
+        // Start updating driver location
+        function startLocationUpdates() {
+            if (locationInterval) {
+                clearInterval(locationInterval);
+            }
+            
+            locationInterval = setInterval(() => {
+                if (driverStatus !== 'offline' && currentLocation && isConnected) {
+                    updateDriverLocation();
+                }
+            }, 15000); // Update location every 15 seconds
+            
+            console.log('✅ Location updates started');
+        }
+        
+        // Update driver location on server
+        async function updateDriverLocation() {
+            if (!currentLocation) {
+                console.log('No location available to update');
+                return;
+            }
+            
+            try {
+                const params = new URLSearchParams();
+                params.append('action', 'updateDriverLocation');
+                params.append('driverId', driverId);
+                params.append('lat', currentLocation.lat);
+                params.append('lng', currentLocation.lng);
+                params.append('status', driverStatus);
+                params.append('timestamp', Date.now());
+                
+                if (connectionToken) {
+                    params.append('connectionToken', connectionToken);
+                }
+                
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: params,
+                    mode: 'cors'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('فشل تحديث الموقع');
+                }
+                
+                const data = await response.json();
+                if (data.result === 'success') {
+                    console.log('✅ Location updated successfully');
+                }
+            } catch (error) {
+                console.error('❌ Error updating location:', error);
+            }
+        }
+        
+        // Load orders from server
+        async function loadOrders() {
+            try {
+                console.log('Loading orders...');
+                
+                const params = new URLSearchParams();
+                params.append('action', 'getDriverOrders');
+                params.append('driverId', driverId);
+                params.append('status', driverStatus);
+                params.append('timestamp', Date.now());
+                
+                if (connectionToken) {
+                    params.append('connectionToken', connectionToken);
+                }
+                
+                const response = await fetch(`${API_URL}?${params.toString()}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.result === 'success') {
+                    processOrders(data.orders);
+                    updateOrdersCount();
+                    renderOrdersList();
+                    updateMapMarkers();
+                    
+                    console.log(`✅ Loaded ${data.orders ? data.orders.length : 0} orders successfully`);
+                    
+                    // Check for new ready orders
+                    if (data.orders && Array.isArray(data.orders)) {
+                        const readyOrders = data.orders.filter(order => 
+                            order.status === 'Ready' && !order.driverId
+                        );
+                        
+                        if (readyOrders.length > 0 && driverStatus === 'online') {
+                            showAvailableOrdersNotification(readyOrders);
+                        }
+                    }
+                    
+                    // Check for notifications
+                    if (data.notifications && data.notifications.length > 0) {
+                        showDriverNotifications(data.notifications);
+                    }
+                    
+                } else if (data.shouldReconnect || data.message === 'رمز الاتصال غير صالح') {
+                    console.log('Reconnecting due to invalid token...');
+                    await connectToServer();
+                } else {
+                    throw new Error(data.message || 'خطأ في تحميل الطلبات');
+                }
+            } catch (error) {
+                console.error('❌ Error loading orders:', error);
+                if (!navigator.onLine) {
+                    showError('لا يوجد اتصال بالإنترنت', 'يرجى الاتصال بالإنترنت لتحميل الطلبات');
+                }
+            }
+        }
+        
+        // Process orders and categorize them
+        function processOrders(orders) {
+            const previousActiveCount = activeOrders.length;
+            
+            // Reset arrays
+            activeOrders = [];
+            pickedOrders = [];
+            completedOrders = [];
+            
+            if (!orders || !Array.isArray(orders)) {
+                console.error('Invalid orders data received');
+                return;
+            }
+            
+            orders.forEach(order => {
+                if (!order || !order.id) return;
+                
+                if (order.status === 'Ready' || order.status === 'Assigned') {
+                    activeOrders.push(order);
+                } else if (order.status === 'Picked') {
+                    pickedOrders.push(order);
+                } else if (order.status === 'Delivered') {
+                    completedOrders.push(order);
+                }
+            });
+            
+            // Sort by time (newest first)
+            activeOrders.sort((a, b) => new Date(b.time || 0) - new Date(a.time || 0));
+            pickedOrders.sort((a, b) => new Date(b.time || 0) - new Date(a.time || 0));
+            completedOrders.sort((a, b) => new Date(b.time || 0) - new Date(a.time || 0));
+            
+            // Check for new orders
+            if (activeOrders.length > previousActiveCount && driverStatus === 'online') {
+                playNewOrderSound();
+                console.log(`New order detected. Total active: ${activeOrders.length}`);
+            }
+        }
+        
+        // Play new order sound
+        function playNewOrderSound() {
+            try {
+                const sound = document.getElementById('notification-sound');
+                sound.currentTime = 0;
+                sound.play().catch(() => {});
+            } catch (e) {
+                console.log('Could not play sound:', e);
+            }
+        }
+        
+        // Show available orders notification
+        function showAvailableOrdersNotification(orders) {
+            if (orders.length === 0) return;
+            
+            const newestOrder = orders[0];
+            
+            // Play notification sound
+            try {
+                const sound = document.getElementById('notification-sound');
+                sound.currentTime = 0;
+                sound.play().catch(() => {});
+            } catch (e) {
+                console.log('Could not play sound:', e);
+            }
+            
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = 'driver-notification';
+            notification.innerHTML = `
+                <div class="notification-header">
+                    <i class="fas fa-bell" style="color: #00c851;"></i>
+                    <h3>طلبات جاهزة للتسليم</h3>
+                    <button class="notification-close-btn" onclick="this.parentElement.parentElement.remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="notification-body">
+                    <p>يوجد ${orders.length} طلب جاهز للتسليم</p>
+                    <p>الطلب #${newestOrder.id} - ${newestOrder.customerName || 'عميل'}</p>
+                </div>
+                <div class="notification-actions">
+                    <button onclick="showAllOrdersOnMap()">عرض على الخريطة</button>
+                    <button onclick="switchOrdersTab('active'); document.getElementById('orders-panel').classList.add('expanded')">عرض الطلبات</button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto-remove after 10 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 10000);
+        }
+        
+        // Show driver notifications
+        function showDriverNotifications(notifications) {
+            notifications.forEach(notification => {
+                if (!notification.seen) {
+                    showNotificationMessage(notification);
+                }
+            });
+        }
+        
+        // Show notification message
+        function showNotificationMessage(notification) {
+            let title = '';
+            let icon = 'info';
+            let color = '#33b5e5';
+            
+            switch(notification.type) {
+                case 'order_assigned':
+                    title = '📦 طلب مخصص لك';
+                    icon = 'user-check';
+                    color = '#ffbb33';
+                    break;
+                case 'order_ready':
+                    title = '🚀 الطلب جاهز';
+                    icon = 'check-circle';
+                    color = '#00c851';
+                    break;
+                case 'order_picked':
+                    title = '✅ تم استلام الطلب';
+                    icon = 'shopping-bag';
+                    color = '#9c27b0';
+                    break;
+                case 'order_delivered':
+                    title = '🎉 تم التوصيل';
+                    icon = 'home';
+                    color = '#4CAF50';
+                    break;
+                default:
+                    title = '🔔 إشعار جديد';
+                    icon = 'bell';
+            }
+            
+            const notificationEl = document.createElement('div');
+            notificationEl.className = 'driver-notification';
+            notificationEl.innerHTML = `
+                <div class="notification-header">
+                    <i class="fas fa-${icon}" style="color: ${color};"></i>
+                    <h3>${title}</h3>
+                    <button class="notification-close-btn" onclick="this.parentElement.parentElement.remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="notification-body">
+                    <p>${notification.message || 'إشعار جديد'}</p>
+                </div>
+            `;
+            
+            document.body.appendChild(notificationEl);
+            
+            // Auto-remove after 8 seconds
+            setTimeout(() => {
+                if (notificationEl.parentNode) {
+                    notificationEl.remove();
+                }
+            }, 8000);
+        }
+        
+        // Update orders count display
+        function updateOrdersCount() {
+            let count = 0;
+            
+            switch(currentTab) {
+                case 'active':
+                    count = activeOrders.length;
+                    break;
+                case 'picked':
+                    count = pickedOrders.length;
+                    break;
+                case 'completed':
+                    count = completedOrders.length;
+                    break;
+            }
+            
+            document.getElementById('orders-count').textContent = count;
+        }
+        
+        // Render orders list based on current tab
+        function renderOrdersList() {
+            const ordersList = document.getElementById('orders-list');
+            let orders = [];
+            
+            switch(currentTab) {
+                case 'active':
+                    orders = activeOrders;
+                    break;
+                case 'picked':
+                    orders = pickedOrders;
+                    break;
+                case 'completed':
+                    orders = completedOrders;
+                    break;
+            }
+            
+            if (orders.length === 0) {
+                let emptyMessage = '';
+                let emptyIcon = 'fas fa-clipboard-list';
+                
+                switch(currentTab) {
+                    case 'active':
+                        emptyMessage = 'لا توجد طلبات جاهزة للتسليم حالياً';
+                        emptyIcon = 'fas fa-mug-hot';
+                        break;
+                    case 'picked':
+                        emptyMessage = 'لا توجد طلبات قيد التوصيل حالياً';
+                        emptyIcon = 'fas fa-motorcycle';
+                        break;
+                    case 'completed':
+                        emptyMessage = 'لا توجد طلبات مكتملة';
+                        emptyIcon = 'fas fa-check-circle';
+                        break;
+                }
+                
+                ordersList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <i class="${emptyIcon}"></i>
+                        </div>
+                        <div class="empty-title">${emptyMessage}</div>
+                        <div class="empty-description">
+                            ${currentTab === 'active' ? 'سيظهر هنا الطلبات الجاهزة للتسليم' : 
+                              currentTab === 'picked' ? 'الطلبات التي تقوم بتوصيلها ستظهر هنا' :
+                              'الطلبات المكتملة ستظهر هنا'}
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            orders.forEach(order => {
+                const orderDate = new Date(order.time || Date.now());
+                const timeString = orderDate.toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                });
+                
+                // Calculate items count
+                const itemsCount = order.items ? order.items.split(' + ').length : 0;
+                
+                // Get status class and text
+                let statusClass = '';
+                let statusText = '';
+                switch(order.status) {
+                    case 'Ready':
+                        statusClass = 'status-ready';
+                        statusText = 'جاهز للتسليم';
+                        break;
+                    case 'Assigned':
+                        statusClass = 'status-preparing';
+                        statusText = 'مخصص لك';
+                        break;
+                    case 'Picked':
+                        statusClass = 'status-picked';
+                        statusText = 'قيد التوصيل';
+                        break;
+                    case 'Delivered':
+                        statusClass = 'status-delivered';
+                        statusText = 'تم التوصيل';
+                        break;
+                    default:
+                        statusClass = 'status-new';
+                        statusText = 'جديد';
+                }
+                
+                // Get customer initial for avatar
+                const customerName = order.customerName || 'عميل';
+                const customerInitial = customerName.charAt(0).toUpperCase();
+                
+                html += `
+                    <div class="order-card ${order.status.toLowerCase()} ${selectedOrder && selectedOrder.id === order.id ? 'active' : ''}" 
+                          onclick="selectOrder(${order.id})" data-order-id="${order.id}">
+                        <div class="order-header">
+                            <div class="order-id">#${order.id}</div>
+                            <div class="order-status-badge ${statusClass}">${statusText}</div>
+                        </div>
+                        
+                        <div class="order-body">
+                            <div class="order-customer">
+                                <div class="customer-avatar">
+                                    ${customerInitial}
+                                </div>
+                                <div class="customer-info">
+                                    <div class="customer-name">${customerName}</div>
+                                    <div class="customer-phone">${order.phone || ''}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="order-items">
+                                <div class="order-items-title">الأصناف (${itemsCount})</div>
+                                <ul class="order-items-list">
+                                    ${order.items ? order.items.split(' + ').slice(0, 2).map(item => 
+                                        `<li class="order-item">${item.trim()}</li>`
+                                    ).join('') : '<li class="order-item">لا توجد أصناف محددة</li>'}
+                                    ${itemsCount > 2 ? '<li class="order-item">...وغيرها</li>' : ''}
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="order-footer">
+                            <div class="order-total">${order.total || '0.000'} د.ك</div>
+                            <div class="order-time">
+                                <i class="far fa-clock"></i>
+                                ${timeString}
+                            </div>
+                        </div>
+                        
+                        ${order.status === 'Ready' || order.status === 'Assigned' ? `
+                            <div class="order-actions">
+                                <button class="action-btn btn-pickup" onclick="event.stopPropagation(); pickOrder(${order.id})">
+                                    <i class="fas fa-shopping-bag"></i> استلام الطلب
+                                </button>
+                                <button class="action-btn btn-delivered" onclick="event.stopPropagation(); showOrderDetails(${order.id})">
+                                    <i class="fas fa-info-circle"></i> التفاصيل
+                                </button>
+                            </div>
+                        ` : order.status === 'Picked' ? `
+                            <div class="order-actions">
+                                <button class="action-btn btn-delivered" onclick="event.stopPropagation(); markDelivered(${order.id})">
+                                    <i class="fas fa-check-circle"></i> تم التوصيل
+                                </button>
+                                <button class="action-btn btn-pickup" onclick="event.stopPropagation(); showNavigation(${order.id})">
+                                    <i class="fas fa-directions"></i> التنقل
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+            
+            ordersList.innerHTML = html;
+        }
+        
+        // Switch between orders tabs
+        function switchOrdersTab(tab) {
+            currentTab = tab;
+            
+            // Update active tab button
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Update orders count
+            updateOrdersCount();
+            
+            // Render orders list
+            renderOrdersList();
+        }
+        
+        // Select an order
+        function selectOrder(orderId) {
+            const order = [...activeOrders, ...pickedOrders, ...completedOrders].find(o => o.id == orderId);
+            if (order) {
+                selectedOrder = order;
+                
+                // Update active card
+                document.querySelectorAll('.order-card').forEach(card => {
+                    card.classList.remove('active');
+                });
+                event.currentTarget.classList.add('active');
+                
+                // Show order on map
+                showOrderOnMap(order);
+                
+                // Show details if picked
+                if (order.status === 'Picked') {
+                    showCurrentDelivery(order);
+                }
+                
+                // Expand panel on mobile
+                document.getElementById('orders-panel').classList.add('expanded');
+            }
+        }
+        
+        // Show order details in modal
+        async function showOrderDetails(orderId) {
+            const order = [...activeOrders, ...pickedOrders, ...completedOrders].find(o => o.id == orderId);
+            if (!order) return;
+            
+            const orderDate = new Date(order.time || Date.now());
+            const timeString = orderDate.toLocaleTimeString('ar-SA', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            const dateString = orderDate.toLocaleDateString('ar-SA');
+            
+            // Parse items
+            let itemsHtml = '';
+            if (order.items) {
+                const items = order.items.split(' + ');
+                items.forEach((item, index) => {
+                    itemsHtml += `
+                        <div class="order-item">
+                            <span>${index + 1}.</span>
+                            <span>${item.trim()}</span>
+                        </div>
+                    `;
+                });
+            }
+            
+            // Parse notes
+            let notesHtml = '';
+            if (order.notes && order.notes.trim()) {
+                notesHtml = `
+                    <div class="notes-container">
+                        <div class="notes-title">
+                            <i class="fas fa-sticky-note"></i>
+                            ملاحظات خاصة
+                        </div>
+                        <div class="notes-content">${order.notes.replace(/\n/g, '<br>')}</div>
+                    </div>
+                `;
+            }
+            
+            // Get status steps
+            const steps = getOrderTrackingSteps(order.status);
+            
+            const modalBody = document.getElementById('order-modal-body');
+            modalBody.innerHTML = `
+                <div class="order-detail-section">
+                    <div class="section-title">
+                        <i class="fas fa-info-circle"></i>
+                        معلومات الطلب
+                    </div>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <div class="detail-label">رقم الطلب</div>
+                            <div class="detail-value">#${order.id}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">تاريخ الطلب</div>
+                            <div class="detail-value">${dateString}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">وقت الطلب</div>
+                            <div class="detail-value">${timeString}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">نوع العميل</div>
+                            <div class="detail-value">${order.type || 'New CX'}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="order-detail-section">
+                    <div class="section-title">
+                        <i class="fas fa-user"></i>
+                        معلومات العميل
+                    </div>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <div class="detail-label">الاسم</div>
+                            <div class="detail-value">${order.customerName || 'عميل'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">رقم الهاتف</div>
+                            <div class="detail-value" dir="ltr">${order.phone || ''}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">العنوان</div>
+                            <div class="detail-value">${order.addressDetails || 'غير محدد'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">طريقة الدفع</div>
+                            <div class="detail-value">${order.paymentMethod === 'cash' ? 'نقداً' : order.paymentMethod || 'غير محدد'}</div>
+                        </div>
+                    </div>
+                    ${notesHtml}
+                </div>
+                
+                <div class="order-detail-section">
+                    <div class="section-title">
+                        <i class="fas fa-shopping-basket"></i>
+                        الأصناف المطلوبة
+                    </div>
+                    <div class="order-items">
+                        ${itemsHtml || '<p style="color: var(--text-gray); text-align: center;">لا توجد أصناف محددة</p>'}
+                    </div>
+                    <div style="margin-top: 15px; padding: 10px; background: var(--card-light); border-radius: 8px; text-align: center;">
+                        <div style="font-weight: 700; color: var(--text-gray)">الإجمالي:</div>
+                        <div style="font-size: 1.5rem; font-weight: 900; color: var(--primary); margin-top: 5px;">
+                            ${order.total || '0.000'} د.ك
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="order-detail-section">
+                    <div class="section-title">
+                        <i class="fas fa-map-marker-alt"></i>
+                        تتبع الطلب
+                    </div>
+                    <div class="order-tracking">
+                        <div class="tracking-timeline">
+                            ${steps.map(step => `
+                                <div class="tracking-step ${step.status}">
+                                    <div class="tracking-icon">
+                                        <i class="${step.icon}"></i>
+                                    </div>
+                                    <div class="tracking-info">
+                                        <div class="tracking-title">${step.title}</div>
+                                        <div class="tracking-desc">${step.description}</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+                
+                ${order.status === 'Picked' ? `
+                    <div style="margin-top: 20px;">
+                        <button class="action-btn btn-delivered" style="width: 100%;" onclick="markDelivered(${order.id}); closeOrderModal();">
+                            <i class="fas fa-check-circle"></i> تأكيد التوصيل
+                        </button>
+                    </div>
+                ` : order.status === 'Ready' || order.status === 'Assigned' ? `
+                    <div style="margin-top: 20px;">
+                        <button class="action-btn btn-pickup" style="width: 100%;" onclick="pickOrder(${order.id}); closeOrderModal();">
+                            <i class="fas fa-shopping-bag"></i> استلام الطلب
+                        </button>
+                    </div>
+                ` : ''}
+            `;
+            
+            // Show modal
+            document.getElementById('order-modal').classList.add('active');
+        }
+        
+        // Get order tracking steps based on status
+        function getOrderTrackingSteps(status) {
+            const steps = [
+                {
+                    title: 'تم استلام الطلب',
+                    description: 'تم استلام الطلب من قبل المطبخ',
+                    icon: 'fas fa-shopping-cart',
+                    status: 'completed'
+                },
+                {
+                    title: 'قيد التحضير',
+                    description: 'الطلب قيد التحضير في المطبخ',
+                    icon: 'fas fa-utensils',
+                    status: status === 'New' || status === 'Assigned' ? 'active' : 'completed'
+                },
+                {
+                    title: 'جاهز للتسليم',
+                    description: 'الطلب جاهز لاستلامه من المطبخ',
+                    icon: 'fas fa-check',
+                    status: status === 'Ready' ? 'active' : 
+                           status === 'Picked' || status === 'Delivered' ? 'completed' : 'pending'
+                },
+                {
+                    title: 'قيد التوصيل',
+                    description: 'الطلب مع السائق ويتم توصيله',
+                    icon: 'fas fa-motorcycle',
+                    status: status === 'Picked' ? 'active' : 
+                           status === 'Delivered' ? 'completed' : 'pending'
+                },
+                {
+                    title: 'تم التوصيل',
+                    description: 'تم تسليم الطلب للعميل',
+                    icon: 'fas fa-home',
+                    status: status === 'Delivered' ? 'completed' : 'pending'
+                }
+            ];
+            
+            return steps;
+        }
+        
+        // Pick an order (mark as picked up)
+        async function pickOrder(orderId) {
+            try {
+                const result = await Swal.fire({
+                    title: 'تأكيد استلام الطلب',
+                    text: `هل أنت متأكد من استلام الطلب رقم #${orderId} من المطبخ؟`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'نعم، تم الاستلام',
+                    cancelButtonText: 'إلغاء',
+                    background: '#222',
+                    color: '#fff',
+                    allowOutsideClick: false,
+                    showClass: {
+                        popup: 'animate__animated animate__fadeInDown'
+                    }
+                });
+                
+                if (result.isConfirmed) {
+                    const params = new URLSearchParams();
+                    params.append('action', 'pickOrder');
+                    params.append('orderId', orderId);
+                    params.append('driverId', driverId);
+                    params.append('timestamp', Date.now());
+                    
+                    if (connectionToken) {
+                        params.append('connectionToken', connectionToken);
+                    }
+                    
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: params,
+                        mode: 'cors'
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('فشل استلام الطلب');
+                    }
+                    
+                    const data = await response.json();
+                    
+                    if (data.result === 'success') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'تم الاستلام',
+                            text: 'تم تسجيل استلام الطلب بنجاح',
+                            timer: 2000,
+                            showConfirmButton: false,
+                            background: '#222',
+                            color: '#fff'
+                        });
+                        
+                        // Update driver status to busy
+                        driverStatus = 'busy';
+                        updateDriverStatusUI();
+                        updateDriverStatusOnServer();
+                        
+                        // Reload orders
+                        loadOrders();
+                        
+                        // Show navigation
+                        const order = [...activeOrders, ...pickedOrders].find(o => o.id == orderId);
+                        if (order) {
+                            showNavigation(orderId);
+                        }
+                    } else {
+                        throw new Error(data.message || 'خطأ في استلام الطلب');
+                    }
+                }
+            } catch (error) {
+                console.error('Error picking order:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: 'فشل في استلام الطلب: ' + error.message,
+                    background: '#222',
+                    color: '#fff'
+                });
+            }
+        }
+        
+        // Mark order as delivered
+        async function markDelivered(orderId) {
+            try {
+                const result = await Swal.fire({
+                    title: 'تأكيد التوصيل',
+                    text: `هل أنت متأكد من توصيل الطلب رقم #${orderId} للعميل؟`,
+                    icon: 'question',
+                    input: 'text',
+                    inputLabel: 'ملاحظات التوصيل (اختياري)',
+                    inputPlaceholder: 'مثال: تم التسليم للعميل مباشرة',
+                    showCancelButton: true,
+                    confirmButtonText: 'نعم، تم التوصيل',
+                    cancelButtonText: 'إلغاء',
+                    background: '#222',
+                    color: '#fff',
+                    allowOutsideClick: false,
+                    showClass: {
+                        popup: 'animate__animated animate__fadeInDown'
+                    }
+                });
+                
+                if (result.isConfirmed) {
+                    const params = new URLSearchParams();
+                    params.append('action', 'markDelivered');
+                    params.append('orderId', orderId);
+                    params.append('driverId', driverId);
+                    params.append('notes', result.value || '');
+                    params.append('timestamp', Date.now());
+                    
+                    if (connectionToken) {
+                        params.append('connectionToken', connectionToken);
+                    }
+                    
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: params,
+                        mode: 'cors'
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('فشل تأكيد التوصيل');
+                    }
+                    
+                    const data = await response.json();
+                    
+                    if (data.result === 'success') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'تم التوصيل',
+                            text: 'تم تسليم الطلب للعميل بنجاح',
+                            timer: 2000,
+                            showConfirmButton: false,
+                            background: '#222',
+                            color: '#fff'
+                        });
+                        
+                        // Update driver status to online
+                        driverStatus = 'online';
+                        updateDriverStatusUI();
+                        updateDriverStatusOnServer();
+                        
+                        // Hide current delivery
+                        hideCurrentDelivery();
+                        
+                        // Remove routing
+                        if (routingControl) {
+                            map.removeControl(routingControl);
+                            routingControl = null;
+                        }
+                        
+                        // Reload orders
+                        loadOrders();
+                    } else {
+                        throw new Error(data.message || 'خطأ في تأكيد التوصيل');
+                    }
+                }
+            } catch (error) {
+                console.error('Error marking delivered:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: 'فشل في تسليم الطلب: ' + error.message,
+                    background: '#222',
+                    color: '#fff'
+                });
+            }
+        }
+        
+        // Update driver status on server
+        async function updateDriverStatusOnServer() {
+            try {
+                const params = new URLSearchParams();
+                params.append('action', 'updateDriverStatus');
+                params.append('driverId', driverId);
+                params.append('status', driverStatus);
+                params.append('timestamp', Date.now());
+                
+                if (connectionToken) {
+                    params.append('connectionToken', connectionToken);
+                }
+                
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: params,
+                    mode: 'cors'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('فشل تحديث الحالة');
+                }
+                
+                const data = await response.json();
+                
+                if (data.result === 'success') {
+                    console.log('✅ Driver status updated on server');
+                    localStorage.setItem('driverStatus', driverStatus);
+                }
+            } catch (error) {
+                console.error('❌ Error updating driver status:', error);
+            }
+        }
+        
+        // Show navigation to order location
+        function showNavigation(orderId) {
+            const order = [...activeOrders, ...pickedOrders].find(o => o.id == orderId);
+            if (!order || !order.locationLat || !order.locationLng) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'لا يمكن التنقل',
+                    text: 'موقع العميل غير محدد',
+                    background: '#222',
+                    color: '#fff'
+                });
+                return;
+            }
+            
+            if (!currentLocation) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'يجب تحديد موقعك',
+                    text: 'الرجاء السماح بمشاركة الموقع',
+                    background: '#222',
+                    color: '#fff'
+                });
+                locateMe();
+                return;
+            }
+            
+            // Clear previous routing
+            if (routingControl) {
+                map.removeControl(routingControl);
+            }
+            
+            // Create routing control
+            routingControl = L.Routing.control({
+                waypoints: [
+                    L.latLng(currentLocation.lat, currentLocation.lng),
+                    L.latLng(order.locationLat, order.locationLng)
+                ],
+                routeWhileDragging: false,
+                showAlternatives: false,
+                lineOptions: {
+                    styles: [{ color: '#ff6600', opacity: 0.8, weight: 5 }]
+                },
+                createMarker: function() { return null; },
+                addWaypoints: false,
+                draggableWaypoints: false,
+                fitSelectedRoutes: true,
+                show: false,
+                language: 'ar',
+                instructions: {
+                    'ar': {
+                        'headTowards': 'توجه نحو',
+                        'continue': 'استمر',
+                        'turnAround': 'ادر حول',
+                        'turnLeft': 'انعطف يساراً',
+                        'turnRight': 'انعطف يميناً',
+                        'youHaveArrived': 'لقد وصلت'
+                    }
+                }
+            }).addTo(map);
+            
+            // Listen for route found event
+            routingControl.on('routesfound', function(e) {
+                const routes = e.routes;
+                if (routes && routes.length > 0) {
+                    const route = routes[0];
+                    currentRoute = route;
+                    
+                    // Update current delivery info
+                    showCurrentDelivery(order);
+                    updateDeliveryInfo(route);
+                    
+                    // Fit bounds to route
+                    map.fitBounds(routes[0].coordinates);
+                }
+            });
+            
+            // Show current delivery
+            showCurrentDelivery(order);
+        }
+        
+        // Show current delivery information
+        function showCurrentDelivery(order) {
+            const currentDelivery = document.getElementById('current-delivery');
+            currentDelivery.classList.add('active');
+            
+            document.getElementById('current-order-id').textContent = `#${order.id}`;
+            document.getElementById('current-address').textContent = order.addressDetails || order.location || 'العنوان غير محدد';
+            
+            if (currentRoute) {
+                updateDeliveryInfo(currentRoute);
+            }
+        }
+        
+        // Update delivery information
+        function updateDeliveryInfo(route) {
+            const distance = (route.summary.totalDistance / 1000).toFixed(1);
+            const time = Math.round(route.summary.totalTime / 60);
+            
+            document.getElementById('current-distance').textContent = `${distance} كم`;
+            document.getElementById('current-eta').textContent = `${time} دقيقة`;
+            
+            // Calculate progress based on remaining distance
+            if (currentLocation && route.coordinates && route.coordinates.length > 0) {
+                const totalDistance = route.summary.totalDistance;
+                const remainingDistance = calculateDistanceToDestination(currentLocation, route.coordinates[route.coordinates.length - 1]);
+                const progress = Math.max(0, Math.min(100, 100 - (remainingDistance / totalDistance * 100)));
+                document.getElementById('delivery-progress').style.width = `${progress}%`;
+            }
+        }
+        
+        // Calculate distance between two points
+        function calculateDistanceToDestination(point1, point2) {
+            const R = 6371e3; // Earth's radius in meters
+            const φ1 = point1.lat * Math.PI/180;
+            const φ2 = point2.lat * Math.PI/180;
+            const Δφ = (point2.lat - point1.lat) * Math.PI/180;
+            const Δλ = (point2.lng - point1.lng) * Math.PI/180;
+            
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            
+            return R * c;
+        }
+        
+        // Hide current delivery
+        function hideCurrentDelivery() {
+            document.getElementById('current-delivery').classList.remove('active');
+        }
+        
+        // Update map markers
+        function updateMapMarkers() {
+            // Clear existing markers
+            orderMarkers.forEach(marker => map.removeLayer(marker));
+            orderMarkers = [];
+            
+            // Add markers for active and picked orders
+            const ordersToShow = [...activeOrders, ...pickedOrders];
+            
+            ordersToShow.forEach(order => {
+                if (order.locationLat && order.locationLng) {
+                    let iconColor = '';
+                    let icon = '';
+                    
+                    if (order.status === 'Picked') {
+                        iconColor = '#9c27b0';
+                        icon = 'fas fa-motorcycle';
+                    } else if (order.status === 'Ready') {
+                        iconColor = '#00c851';
+                        icon = 'fas fa-check';
+                    } else if (order.status === 'Assigned') {
+                        iconColor = '#ffbb33';
+                        icon = 'fas fa-user-clock';
+                    } else {
+                        iconColor = '#33b5e5';
+                        icon = 'fas fa-clock';
+                    }
+                    
+                    const markerIcon = L.divIcon({
+                        html: `
+                            <div style="background: ${iconColor}; width: 35px; height: 35px; border-radius: 50%; 
+                                         display: flex; align-items: center; justify-content: center; 
+                                         color: white; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">
+                                <i class="${icon}" style="font-size: 16px;"></i>
+                            </div>
+                            <div style="background: white; color: #000; padding: 4px 8px; border-radius: 8px; 
+                                         margin-top: 4px; font-weight: bold; font-size: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); white-space: nowrap;">
+                                #${order.id}
+                            </div>
+                        `,
+                        className: 'custom-marker',
+                        iconSize: [35, 35],
+                        iconAnchor: [17.5, 35],
+                        popupAnchor: [0, -35]
+                    });
+                    
+                    const marker = L.marker([order.locationLat, order.locationLng], { icon: markerIcon })
+                        .addTo(map)
+                        .bindPopup(`
+                            <div style="text-align: right; direction: rtl; font-family: Cairo; min-width: 180px; font-size: 14px;">
+                                <h3 style="margin: 0 0 8px 0; color: #ff6600; font-size: 16px;">طلب #${order.id}</h3>
+                                <p style="margin: 4px 0;"><strong>العميل:</strong> ${order.customerName || 'عميل'}</p>
+                                <p style="margin: 4px 0;"><strong>الحالة:</strong> ${order.status === 'Ready' ? 'جاهز للتسليم' : 
+                                                             order.status === 'Picked' ? 'قيد التوصيل' : 
+                                                             order.status === 'Assigned' ? 'مخصص لك' : 'قيد التحضير'}</p>
+                                <p style="margin: 4px 0;"><strong>العنوان:</strong> ${order.addressDetails || 'غير محدد'}</p>
+                                <button onclick="showOrderDetails(${order.id}); closeOrderModal();" 
+                                        style="background: #ff6600; color: white; border: none; padding: 6px 12px; 
+                                               border-radius: 5px; cursor: pointer; width: 100%; margin-top: 8px; font-family: Cairo; font-size: 14px;">
+                                    عرض التفاصيل
+                                </button>
+                            </div>
+                        `);
+                    
+                    orderMarkers.push(marker);
+                }
+            });
+        }
+        
+        // Show order on map
+        function showOrderOnMap(order) {
+            if (order.locationLat && order.locationLng) {
+                map.setView([order.locationLat, order.locationLng], 15);
+            }
+        }
+        
+        // Show all orders on map
+        function showAllOrdersOnMap() {
+            const ordersToShow = [...activeOrders, ...pickedOrders];
+            if (ordersToShow.length === 0) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'لا توجد طلبات',
+                    text: 'لا توجد طلبات لعرضها على الخريطة',
+                    background: '#222',
+                    color: '#fff',
+                    timer: 2000
+                });
+                return;
+            }
+            
+            const bounds = L.latLngBounds();
+            let hasValidLocation = false;
+            
+            ordersToShow.forEach(order => {
+                if (order.locationLat && order.locationLng) {
+                    bounds.extend([order.locationLat, order.locationLng]);
+                    hasValidLocation = true;
+                }
+            });
+            
+            if (hasValidLocation) {
+                map.fitBounds(bounds, { padding: [30, 30] });
+            } else {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'لا توجد مواقع',
+                    text: 'لا توجد طلبات بمواقع محددة',
+                    background: '#222',
+                    color: '#fff',
+                    timer: 2000
+                });
+            }
+        }
+        
+        // Driver Status Functions
+        function openStatusModal() {
+            document.getElementById('status-modal').classList.add('active');
+            
+            // Select current status
+            document.querySelectorAll('.status-option').forEach(option => {
+                option.classList.remove('active');
+                if (option.dataset.status === driverStatus) {
+                    option.classList.add('active');
+                }
+            });
+        }
+        
+        function closeStatusModal() {
+            document.getElementById('status-modal').classList.remove('active');
+        }
+        
+        function selectStatus(status) {
+            document.querySelectorAll('.status-option').forEach(option => {
+                option.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+            driverStatus = status;
+        }
+        
+        async function updateDriverStatus() {
+            try {
+                // Update local storage
+                localStorage.setItem('driverStatus', driverStatus);
+                updateDriverStatusUI();
+                closeStatusModal();
+                
+                // Update on server
+                await updateDriverStatusOnServer();
+                
+                if (currentLocation) {
+                    await updateDriverLocation();
+                }
+                
+                // Start/stop polling based on status
+                if (driverStatus === 'offline') {
+                    if (pollingInterval) {
+                        clearInterval(pollingInterval);
+                        pollingInterval = null;
+                    }
+                    if (locationInterval) {
+                        clearInterval(locationInterval);
+                        locationInterval = null;
+                    }
+                    if (heartbeatInterval) {
+                        clearInterval(heartbeatInterval);
+                        heartbeatInterval = null;
+                    }
+                    
+                    isConnected = false;
+                } else {
+                    // Reconnect to server
+                    const result = await connectToServer();
+                    isConnected = result.success;
+                    
+                    if (result.success) {
+                        // Restart intervals
+                        startPolling();
+                        startLocationUpdates();
+                        startHeartbeat();
+                    }
+                }
+                
+                // Show confirmation
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تم تحديث الحالة',
+                    text: `أنت الآن ${driverStatus === 'online' ? 'متاح للتوصيل' : 
+                                         driverStatus === 'busy' ? 'مشغول' : 'غير متصل'}`,
+                    timer: 2000,
+                    showConfirmButton: false,
+                    background: '#222',
+                    color: '#fff'
+                });
+                
+                // Reload orders with new status
+                loadOrders();
+                
+            } catch (error) {
+                console.error('Error updating status:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: 'فشل تحديث الحالة',
+                    background: '#222',
+                    color: '#fff'
+                });
+            }
+        }
+        
+        function updateDriverStatusUI() {
+            const indicator = document.getElementById('status-indicator');
+            const text = document.getElementById('status-text');
+            
+            indicator.className = 'status-indicator ' + driverStatus;
+            text.className = 'status-text ' + driverStatus;
+            
+            switch(driverStatus) {
+                case 'online':
+                    text.textContent = 'متاح للتوصيل';
+                    indicator.style.animation = 'pulse 2s infinite';
+                    break;
+                case 'busy':
+                    text.textContent = 'مشغول حالياً';
+                    indicator.style.animation = 'none';
+                    break;
+                case 'offline':
+                    text.textContent = 'غير متصل';
+                    indicator.style.animation = 'pulse 2s infinite';
+                    break;
+            }
+        }
+        
+        // Map Functions
+        function locateMe() {
+            if (navigator.geolocation) {
+                Swal.fire({
+                    title: 'جاري تحديد الموقع...',
+                    text: 'الرجاء الانتظار',
+                    allowOutsideClick: false,
+                    showConfirmButton: false,
+                    background: '#222',
+                    color: '#fff',
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        Swal.close();
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        currentLocation = { lat, lng };
+                        
+                        // Update or create driver marker
+                        if (driverMarker) {
+                            driverMarker.setLatLng([lat, lng]);
+                        } else {
+                            const driverIcon = L.divIcon({
+                                html: `
+                                    <div style="background: #ff6600; width: 45px; height: 45px; border-radius: 50%; 
+                                                 display: flex; align-items: center; justify-content: center; 
+                                                 color: white; border: 3px solid white; box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+                                                 animation: pulse 2s infinite;">
+                                        <i class="fas fa-motorcycle" style="font-size: 20px;"></i>
+                                    </div>
+                                `,
+                                className: 'driver-marker',
+                                iconSize: [45, 45],
+                                iconAnchor: [22.5, 45]
+                            });
+                            
+                            driverMarker = L.marker([lat, lng], { icon: driverIcon })
+                                .addTo(map)
+                                .bindPopup('<div style="text-align: center; font-weight: bold; font-family: Cairo;">موقعي الحالي</div>');
+                        }
+                        
+                        // Center map on location
+                        map.setView([lat, lng], 15);
+                        
+                        // Update location on server
+                        updateDriverLocation();
+                        
+                    },
+                    (error) => {
+                        Swal.close();
+                        console.error('Error getting location:', error);
+                        
+                        let errorMessage = 'تعذر الحصول على موقعك. ';
+                        switch(error.code) {
+                            case error.PERMISSION_DENIED:
+                                errorMessage += 'تم رفض الإذن. يرجى تفعيل خدمات الموقع في إعدادات المتصفح.';
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                errorMessage += 'معلومات الموقع غير متاحة.';
+                                break;
+                            case error.TIMEOUT:
+                                errorMessage += 'انتهت مهلة طلب الموقع.';
+                                break;
+                            default:
+                                errorMessage += 'حدث خطأ غير معروف.';
+                        }
+                        
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'خطأ في الموقع',
+                            text: errorMessage,
+                            confirmButtonText: 'حسناً',
+                            background: '#222',
+                            color: '#fff'
+                        });
+                    },
+                    { 
+                        enableHighAccuracy: true, 
+                        timeout: 10000, 
+                        maximumAge: 0 
+                    }
+                );
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'غير مدعوم',
+                    text: 'متصفحك لا يدعم خدمات الموقع',
+                    background: '#222',
+                    color: '#fff'
+                });
+            }
+        }
+        
+        function toggleOrdersPanel() {
+            const panel = document.getElementById('orders-panel');
+            panel.classList.toggle('expanded');
+        }
+        
+        function closeOrderModal() {
+            document.getElementById('order-modal').classList.remove('active');
+        }
+        
+        function closeAlert() {
+            const alert = document.getElementById('alert-notification');
+            alert.classList.remove('show');
+        }
+        
+        // Initialize app when page loads
+        document.addEventListener('DOMContentLoaded', init);
+        
+        // Handle online/offline status
+        window.addEventListener('online', () => {
+            console.log('✅ Connection restored');
+            updateConnectionStatus('متصل بالإنترنت', 'connected');
+            
+            // Reinitialize connection
+            setTimeout(async () => {
+                const test = await testAPIConnection();
+                if (test.success) {
+                    isConnected = true;
+                    updateConnectionStatus('متصل بالنظام', 'connected');
+                    
+                    if (driverStatus !== 'offline') {
+                        await connectToServer();
+                        loadOrders();
+                        
+                        if (driverStatus === 'online' || driverStatus === 'busy') {
+                            startPolling();
+                            startLocationUpdates();
+                            startHeartbeat();
+                        }
+                    }
+                }
+            }, 1000);
+        });
+        
+        window.addEventListener('offline', () => {
+            console.log('❌ Connection lost');
+            updateConnectionStatus('غير متصل بالإنترنت', 'disconnected');
+            isConnected = false;
+        });
+        
+        // Handle beforeunload
+        window.addEventListener('beforeunload', () => {
+            console.log('Page unloading, cleaning up...');
+            
+            if (pollingInterval) clearInterval(pollingInterval);
+            if (locationInterval) clearInterval(locationInterval);
+            if (heartbeatInterval) clearInterval(heartbeatInterval);
+            
+            // Try to update status to offline
+            if (driverStatus !== 'offline' && navigator.sendBeacon && connectionToken) {
+                const data = new FormData();
+                data.append('action', 'updateDriverStatus');
+                data.append('driverId', driverId);
+                data.append('status', 'offline');
+                data.append('connectionToken', connectionToken);
+                data.append('timestamp', Date.now().toString());
+                
+                navigator.sendBeacon(API_URL, data);
+            }
+        });
+        
+        // Prevent pull-to-refresh on mobile
+        document.addEventListener('touchmove', function(e) {
+            if (e.target.closest('.orders-list') || e.target.closest('.order-modal-content')) {
+                return;
+            }
+            e.preventDefault();
+        }, { passive: false });
+        
+        // Handle back button on mobile
+        window.addEventListener('popstate', function() {
+            if (document.getElementById('order-modal').classList.contains('active')) {
+                closeOrderModal();
+                history.pushState(null, null, window.location.pathname);
+            } else if (document.getElementById('status-modal').classList.contains('active')) {
+                closeStatusModal();
+                history.pushState(null, null, window.location.pathname);
+            }
+        });
+        
+        // Push initial state
+        history.pushState(null, null, window.location.pathname);
+    </script>
+</body>
+</html>
