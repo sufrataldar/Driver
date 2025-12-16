@@ -1450,7 +1450,7 @@
         // ==============================================
         // IMPORTANT: قم بتغيير هذا الرابط إلى رابط نشر الـ Google Apps Script الخاص بك
         // ==============================================
-        const API_URL = 'https://script.google.com/macros/s/AKfycbxZX6iyr40OANq2kusL7zV6bxS4HddyWh04oed9ab1I4mFt1JWzgxTnh5gQvx5YK5Jm/exec';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxaYccVd3uTDBYGFF7VuMmziCddUlypEkktDAl01CXAOi76IM4_Sfl_4bAycSxwNw_c/exec';
         // ==============================================
         
         // Global Variables
@@ -1870,7 +1870,7 @@
             console.log('✅ Location updates started');
         }
         
-        // Update driver location on server
+        // Update driver location on server - MODIFIED: Don't change driver status
         async function updateDriverLocation() {
             if (!currentLocation) {
                 console.log('No location available to update');
@@ -1883,7 +1883,6 @@
                 params.append('driverId', driverId);
                 params.append('lat', currentLocation.lat);
                 params.append('lng', currentLocation.lng);
-                params.append('status', driverStatus);
                 params.append('timestamp', Date.now());
                 
                 if (connectionToken) {
@@ -1991,7 +1990,7 @@
                     activeOrders.push(order);
                 } else if (order.status === 'Picked') {
                     pickedOrders.push(order);
-                } else if (order.status === 'Delivered') {
+                } else if (order.status === 'Delivered' || order.status === 'Completed') {
                     completedOrders.push(order);
                 }
             });
@@ -2231,6 +2230,7 @@
                         statusText = 'قيد التوصيل';
                         break;
                     case 'Delivered':
+                    case 'Completed':
                         statusClass = 'status-delivered';
                         statusText = 'تم التوصيل';
                         break;
@@ -2520,20 +2520,20 @@
                     description: 'الطلب جاهز لاستلامه من المطبخ',
                     icon: 'fas fa-check',
                     status: status === 'Ready' ? 'active' : 
-                           status === 'Picked' || status === 'Delivered' ? 'completed' : 'pending'
+                           status === 'Picked' || status === 'Delivered' || status === 'Completed' ? 'completed' : 'pending'
                 },
                 {
                     title: 'قيد التوصيل',
                     description: 'الطلب مع السائق ويتم توصيله',
                     icon: 'fas fa-motorcycle',
                     status: status === 'Picked' ? 'active' : 
-                           status === 'Delivered' ? 'completed' : 'pending'
+                           status === 'Delivered' || status === 'Completed' ? 'completed' : 'pending'
                 },
                 {
                     title: 'تم التوصيل',
                     description: 'تم تسليم الطلب للعميل',
                     icon: 'fas fa-home',
-                    status: status === 'Delivered' ? 'completed' : 'pending'
+                    status: status === 'Delivered' || status === 'Completed' ? 'completed' : 'pending'
                 }
             ];
             
@@ -2593,10 +2593,10 @@
                             color: '#fff'
                         });
                         
-                        // Update driver status to busy
-                        driverStatus = 'busy';
-                        updateDriverStatusUI();
-                        updateDriverStatusOnServer();
+                        // لا تغيير حالة السائق تلقائياً - يبقى متاحاً
+                        // driverStatus = 'busy'; // إزالة هذا السطر
+                        // updateDriverStatusUI(); // إزالة هذا السطر
+                        // updateDriverStatusOnServer(); // إزالة هذا السطر
                         
                         // Reload orders
                         loadOrders();
@@ -2622,7 +2622,7 @@
             }
         }
         
-        // Mark order as delivered
+        // Mark order as delivered - MODIFIED: No automatic status change
         async function markDelivered(orderId) {
             try {
                 const result = await Swal.fire({
@@ -2679,10 +2679,10 @@
                             color: '#fff'
                         });
                         
-                        // Update driver status to online
-                        driverStatus = 'online';
-                        updateDriverStatusUI();
-                        updateDriverStatusOnServer();
+                        // لا تغيير حالة السائق تلقائياً - يبقى كما هو
+                        // driverStatus = 'online'; // إزالة هذا السطر
+                        // updateDriverStatusUI(); // إزالة هذا السطر
+                        // updateDriverStatusOnServer(); // إزالة هذا السطر
                         
                         // Hide current delivery
                         hideCurrentDelivery();
