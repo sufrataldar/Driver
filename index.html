@@ -45,7 +45,7 @@
             --order-status-cancelled: #ff4444;
             
             --sheet-handle-height: 80px;
-            --sheet-expanded-height: 55vh; /* ارتفاع الشريط المفتوح - 55% من الشاشة */
+            --sheet-expanded-height: 55vh;
         }
         
         * {
@@ -222,7 +222,48 @@
             transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
-        /* شريط الطلبات الجديد - تصميم محسّن للهواتف */
+        /* Leaflet Routing Machine Custom Styles */
+        .leaflet-routing-container {
+            background: rgba(30, 30, 30, 0.95) !important;
+            backdrop-filter: blur(10px) !important;
+            -webkit-backdrop-filter: blur(10px) !important;
+            border: 1px solid var(--border) !important;
+            border-radius: 12px !important;
+            color: var(--text) !important;
+            font-family: 'Cairo', sans-serif !important;
+            width: 300px !important;
+            max-height: 400px !important;
+            overflow-y: auto !important;
+            direction: rtl !important;
+        }
+        
+        .leaflet-routing-container h2,
+        .leaflet-routing-container h3 {
+            color: var(--primary) !important;
+            font-family: 'Cairo', sans-serif !important;
+            text-align: right !important;
+        }
+        
+        .leaflet-routing-alt {
+            background: transparent !important;
+            max-height: 200px !important;
+            overflow-y: auto !important;
+        }
+        
+        .leaflet-routing-alt table {
+            color: var(--text) !important;
+            width: 100% !important;
+        }
+        
+        .leaflet-routing-alt tr:hover {
+            background: rgba(255, 102, 0, 0.1) !important;
+        }
+        
+        .leaflet-routing-collapse-btn {
+            color: var(--primary) !important;
+        }
+        
+        /* شريط الطلبات الجديد */
         .orders-sheet {
             position: fixed;
             left: 0;
@@ -674,6 +715,73 @@
             display: block;
         }
         
+        .current-delivery-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .current-delivery-title {
+            font-size: 1.2rem;
+            font-weight: 900;
+            color: var(--primary);
+        }
+        
+        .current-delivery-info {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .current-delivery-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+        }
+        
+        .current-delivery-label {
+            color: var(--text-gray);
+            font-size: 0.9rem;
+        }
+        
+        .current-delivery-value {
+            color: var(--text);
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        
+        .progress-bar {
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            margin-top: 15px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        
+        .close-modal {
+            background: transparent;
+            border: none;
+            color: var(--text-gray);
+            cursor: pointer;
+            padding: 5px;
+            font-size: 1.2rem;
+        }
+        
+        .close-modal:hover {
+            color: var(--danger);
+        }
+        
         @keyframes slideDown {
             from {
                 transform: translateY(-100px);
@@ -685,7 +793,7 @@
             }
         }
         
-        /* Modal and other styles remain similar */
+        /* Modal and other styles */
         .status-modal {
             position: fixed;
             top: 0;
@@ -792,6 +900,11 @@
                 height: 45px;
                 font-size: 1.1rem;
             }
+            
+            .leaflet-routing-container {
+                width: 280px !important;
+                max-height: 350px !important;
+            }
         }
         
         @media (max-width: 380px) {
@@ -812,6 +925,10 @@
             .order-action-btn {
                 padding: 12px;
                 font-size: 0.9rem;
+            }
+            
+            .leaflet-routing-container {
+                width: 250px !important;
             }
         }
         
@@ -847,11 +964,6 @@
         /* تأثيرات جديدة للخريطة عند السحب */
         .map-container.sheet-expanded {
             filter: brightness(0.95);
-        }
-        
-        /* تعديلات للوضع الليلي */
-        .night-mode {
-            filter: invert(1) hue-rotate(180deg);
         }
         
         /* تحسينات للأداء على الموبايل */
@@ -981,13 +1093,12 @@
         </div>
     </div>
     
-    <!-- Orders Sheet - التصميم الجديد للهواتف -->
+    <!-- Orders Sheet -->
     <div class="orders-sheet collapsed" id="orders-sheet">
         <div class="drag-handle-container" id="drag-handle">
             <div class="drag-handle"></div>
             <div class="drag-hint">اسحب لأعلى لرؤية الطلبات</div>
             <div class="drag-indicator">↕ اسحب للتحكم في الحجم</div>
-            <!-- منطقة سحب موسعة -->
             <div class="drag-handle-area"></div>
         </div>
         
@@ -1084,23 +1195,6 @@
         </div>
     </div>
     
-    <!-- Alert Notification -->
-    <div class="alert-notification" id="alert-notification">
-        <div class="alert-header">
-            <div class="alert-title">
-                <i class="fas fa-bell"></i>
-                طلب جديد
-            </div>
-            <button class="alert-close" onclick="closeAlert()">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div class="alert-body">
-            يوجد طلب جديد قيد التحضير. سيتم إعلامك عندما يكون جاهزاً للتسليم.
-            <div class="alert-order-id" id="alert-order-id">#0000</div>
-        </div>
-    </div>
-    
     <!-- Audio for notifications -->
     <audio id="notification-sound" preload="auto">
         <source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg">
@@ -1152,9 +1246,9 @@
         let sheetStartY = 0;
         let sheetCurrentY = 0;
         let sheetHeight = 0;
-        const sheetCollapsedHeight = 80; // ارتفاع الشريط عند الإغلاق
+        const sheetCollapsedHeight = 80;
         let isSheetExpanded = false;
-        let sheetExpandedHeight = window.innerHeight * 0.55; // 55% من الشاشة
+        let sheetExpandedHeight = window.innerHeight * 0.55;
         let velocity = 0;
         let lastY = 0;
         let lastTime = 0;
@@ -1239,7 +1333,7 @@
             }
         }
         
-        // تهيئة نظام سحب الشريط - محسّنة للاحترافية
+        // تهيئة نظام سحب الشريط
         function initSheetDrag() {
             const sheet = document.getElementById('orders-sheet');
             const dragHandle = document.getElementById('drag-handle');
@@ -1333,8 +1427,8 @@
             
             // حساب الموضع الجديد مع قيود
             const currentTranslate = getSheetTranslateY();
-            const maxTranslate = 0; // أعلى موضع (مفتوح بالكامل)
-            const minTranslate = sheetHeight - sheetCollapsedHeight; // أدنى موضع (مغلق)
+            const maxTranslate = 0;
+            const minTranslate = sheetHeight - sheetCollapsedHeight;
             
             let newTranslate = currentTranslate + deltaY;
             
@@ -1364,7 +1458,7 @@
             
             const sheet = document.getElementById('orders-sheet');
             const currentTranslate = getSheetTranslateY();
-            const threshold = (sheetHeight - sheetCollapsedHeight) / 2; // منتصف المسافة
+            const threshold = (sheetHeight - sheetCollapsedHeight) / 2;
             
             // إعادة تفعيل الانتقالات
             sheet.style.transition = 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
@@ -1379,10 +1473,10 @@
             ordersScroll.style.overflow = 'auto';
             
             // تحديد الاتجاه بناءً على الموضع والسرعة
-            const momentum = velocity * 100; // تأثير الزخم
+            const momentum = velocity * 100;
             
             if ((currentTranslate > threshold && momentum < 1) || momentum < -0.5) {
-                // إغلاق الشريط (مع تأثير الزخم)
+                // إغلاق الشريط
                 const closeDistance = sheetHeight - sheetCollapsedHeight - currentTranslate;
                 const closeTime = Math.min(0.35, Math.abs(closeDistance) / 1000);
                 
@@ -1392,7 +1486,7 @@
                 sheet.style.transform = `translateY(calc(100% - ${sheetCollapsedHeight}px))`;
                 isSheetExpanded = false;
             } else {
-                // فتح الشريط (مع تأثير الزخم)
+                // فتح الشريط
                 const openDistance = currentTranslate;
                 const openTime = Math.min(0.35, Math.abs(openDistance) / 1000);
                 
@@ -1415,7 +1509,6 @@
             const startY = touch.clientY;
             const endY = touch.clientY;
             
-            // التأكد من أن الحركة كانت صغيرة (نقر وليس سحب)
             if (Math.abs(startY - endY) < 10) {
                 toggleSheet();
             }
@@ -1455,7 +1548,6 @@
                 sheet.style.transform = `translateY(calc(100% - ${sheetCollapsedHeight}px))`;
                 isSheetExpanded = false;
                 
-                // تأثير اهتزاز عند الإغلاق
                 sheet.style.animation = 'sheetBounce 0.3s ease';
                 setTimeout(() => {
                     sheet.style.animation = '';
@@ -1466,7 +1558,6 @@
                 sheet.style.transform = `translateY(0)`;
                 isSheetExpanded = true;
                 
-                // تأثير اهتزاز عند الفتح
                 sheet.style.animation = 'sheetBounce 0.3s ease';
                 setTimeout(() => {
                     sheet.style.animation = '';
@@ -1507,7 +1598,6 @@
             } catch (error) {
                 console.error('API connection test failed:', error);
                 
-                // Try with POST method
                 try {
                     const params = new URLSearchParams();
                     params.append('action', 'getSystemStats');
@@ -1547,7 +1637,6 @@
             connStatus.className = `connection-status ${status}`;
             connStatus.style.display = 'flex';
             
-            // Auto-hide success messages after 5 seconds
             if (status === 'connected') {
                 setTimeout(() => {
                     if (connStatus.className.includes('connected')) {
@@ -1559,10 +1648,8 @@
         
         // Initialize map
         function initMap() {
-            // Default location (Kuwait)
             const defaultLocation = [29.3759, 47.9774];
             
-            // Create map
             map = L.map('map', {
                 zoomControl: false,
                 attributionControl: false,
@@ -1574,18 +1661,15 @@
                 keyboard: false
             }).setView(defaultLocation, 13);
             
-            // Add tile layer
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors',
                 maxZoom: 19
             }).addTo(map);
             
-            // Add custom zoom control for mobile
             L.control.zoom({
                 position: 'bottomright'
             }).addTo(map);
             
-            // Try to get current location
             locateMe();
         }
         
@@ -1598,7 +1682,6 @@
                 if (notificationSound) notificationSound.volume = 0.3;
                 if (orderReadySound) orderReadySound.volume = 0.3;
                 
-                // Preload sounds
                 notificationSound.load();
                 orderReadySound.load();
                 
@@ -1820,7 +1903,6 @@
                     
                     console.log(`✅ Loaded ${data.orders ? data.orders.length : 0} orders successfully`);
                     
-                    // Check for new ready orders
                     if (data.orders && Array.isArray(data.orders)) {
                         const readyOrders = data.orders.filter(order => 
                             order.status === 'Ready' && !order.driverId
@@ -1849,7 +1931,6 @@
         function processOrders(orders) {
             const previousActiveCount = activeOrders.length;
             
-            // Reset arrays
             activeOrders = [];
             pickedOrders = [];
             completedOrders = [];
@@ -1871,12 +1952,10 @@
                 }
             });
             
-            // Sort by time (newest first)
             activeOrders.sort((a, b) => new Date(b.time || 0) - new Date(a.time || 0));
             pickedOrders.sort((a, b) => new Date(b.time || 0) - new Date(a.time || 0));
             completedOrders.sort((a, b) => new Date(b.time || 0) - new Date(a.time || 0));
             
-            // Check for new orders
             if (activeOrders.length > previousActiveCount && driverStatus === 'online') {
                 playNewOrderSound();
                 console.log(`New order detected. Total active: ${activeOrders.length}`);
@@ -1900,7 +1979,6 @@
             
             const newestOrder = orders[0];
             
-            // Play notification sound
             try {
                 const sound = document.getElementById('notification-sound');
                 sound.currentTime = 0;
@@ -1909,7 +1987,6 @@
                 console.log('Could not play sound:', e);
             }
             
-            // Open the sheet automatically
             const sheet = document.getElementById('orders-sheet');
             if (!sheet.classList.contains('expanded')) {
                 toggleSheet();
@@ -1996,10 +2073,8 @@
                     hour12: false
                 });
                 
-                // Calculate items count
                 const itemsCount = order.items ? order.items.split(' + ').length : 0;
                 
-                // Get status class and text
                 let statusClass = '';
                 let statusText = '';
                 switch(order.status) {
@@ -2025,12 +2100,8 @@
                         statusText = 'جديد';
                 }
                 
-                // Get customer initial for avatar
                 const customerName = order.customerName || 'عميل';
                 const customerInitial = customerName.charAt(0).toUpperCase();
-                
-                // Get first 2 items
-                const itemsPreview = order.items ? order.items.split(' + ').slice(0, 2).map(item => item.trim()).join(', ') : '';
                 
                 html += `
                     <div class="order-item-card" onclick="selectOrder(${order.id})" data-order-id="${order.id}">
@@ -2100,17 +2171,12 @@
         function switchOrdersTab(tab) {
             currentTab = tab;
             
-            // Update active tab button
             document.querySelectorAll('.order-tab').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
             
-            // Update orders count
             updateOrdersCount();
-            
-            // Render orders list
             renderOrdersList();
             
-            // Open sheet if closed
             const sheet = document.getElementById('orders-sheet');
             if (!sheet.classList.contains('expanded')) {
                 toggleSheet();
@@ -2123,16 +2189,13 @@
             if (order) {
                 selectedOrder = order;
                 
-                // Update active card
                 document.querySelectorAll('.order-item-card').forEach(card => {
                     card.classList.remove('active');
                 });
                 event.currentTarget.classList.add('active');
                 
-                // Show order on map
                 showOrderOnMap(order);
                 
-                // Show details if picked
                 if (order.status === 'Picked') {
                     showCurrentDelivery(order);
                 }
@@ -2151,7 +2214,6 @@
             });
             const dateString = orderDate.toLocaleDateString('ar-SA');
             
-            // Parse items
             let itemsHtml = '';
             if (order.items) {
                 const items = order.items.split(' + ');
@@ -2164,9 +2226,6 @@
                     `;
                 });
             }
-            
-            // Get status steps
-            const steps = getOrderTrackingSteps(order.status);
             
             const modalBody = document.getElementById('order-modal-body');
             modalBody.innerHTML = `
@@ -2243,48 +2302,7 @@
                 ` : ''}
             `;
             
-            // Show modal
             document.getElementById('order-modal').classList.add('active');
-        }
-        
-        // Get order tracking steps based on status
-        function getOrderTrackingSteps(status) {
-            const steps = [
-                {
-                    title: 'تم استلام الطلب',
-                    description: 'تم استلام الطلب من قبل المطبخ',
-                    icon: 'fas fa-shopping-cart',
-                    status: 'completed'
-                },
-                {
-                    title: 'قيد التحضير',
-                    description: 'الطلب قيد التحضير في المطبخ',
-                    icon: 'fas fa-utensils',
-                    status: status === 'New' || status === 'Assigned' ? 'active' : 'completed'
-                },
-                {
-                    title: 'جاهز للتسليم',
-                    description: 'الطلب جاهز لاستلامه من المطبخ',
-                    icon: 'fas fa-check',
-                    status: status === 'Ready' ? 'active' : 
-                           status === 'Picked' || status === 'Delivered' || status === 'Completed' ? 'completed' : 'pending'
-                },
-                {
-                    title: 'قيد التوصيل',
-                    description: 'الطلب مع السائق ويتم توصيله',
-                    icon: 'fas fa-motorcycle',
-                    status: status === 'Picked' ? 'active' : 
-                           status === 'Delivered' || status === 'Completed' ? 'completed' : 'pending'
-                },
-                {
-                    title: 'تم التوصيل',
-                    description: 'تم تسليم الطلب للعميل',
-                    icon: 'fas fa-home',
-                    status: status === 'Delivered' || status === 'Completed' ? 'completed' : 'pending'
-                }
-            ];
-            
-            return steps;
         }
         
         // Pick an order (mark as picked up)
@@ -2340,10 +2358,8 @@
                             color: '#fff'
                         });
                         
-                        // Reload orders
                         loadOrders();
                         
-                        // Show navigation
                         const order = [...activeOrders, ...pickedOrders].find(o => o.id == orderId);
                         if (order) {
                             showNavigation(orderId);
@@ -2421,16 +2437,13 @@
                             color: '#fff'
                         });
                         
-                        // Hide current delivery
                         hideCurrentDelivery();
                         
-                        // Remove routing
                         if (routingControl) {
                             map.removeControl(routingControl);
                             routingControl = null;
                         }
                         
-                        // Reload orders
                         loadOrders();
                     } else {
                         throw new Error(data.message || 'خطأ في تأكيد التوصيل');
@@ -2448,14 +2461,27 @@
             }
         }
         
-        // Show navigation to order location
+        // **FIXED: Show navigation to order location - الإصلاح الرئيسي هنا**
         function showNavigation(orderId) {
             const order = [...activeOrders, ...pickedOrders].find(o => o.id == orderId);
-            if (!order || !order.locationLat || !order.locationLng) {
+            if (!order) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'طلب غير موجود',
+                    text: 'لم يتم العثور على الطلب',
+                    background: '#222',
+                    color: '#fff'
+                });
+                return;
+            }
+            
+            // تحقق من وجود إحداثيات الموقع
+            if (!order.locationLat || !order.locationLng) {
+                console.log('Order location data:', order);
                 Swal.fire({
                     icon: 'warning',
                     title: 'لا يمكن التنقل',
-                    text: 'موقع العميل غير محدد',
+                    text: 'موقع العميل غير محدد أو غير صحيح',
                     background: '#222',
                     color: '#fff'
                 });
@@ -2474,48 +2500,219 @@
                 return;
             }
             
-            // Clear previous routing
+            console.log('Starting navigation...');
+            console.log('From:', currentLocation);
+            console.log('To:', { lat: order.locationLat, lng: order.locationLng });
+            
+            // إظهار رسالة تحميل
+            Swal.fire({
+                title: 'جاري حساب المسار...',
+                text: 'يرجى الانتظار',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                background: '#222',
+                color: '#fff',
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // تنظيف أي مسار سابق
             if (routingControl) {
                 map.removeControl(routingControl);
+                routingControl = null;
             }
             
-            // Create routing control
+            // إنشاء نقاط البداية والنهاية
+            const startPoint = L.latLng(currentLocation.lat, currentLocation.lng);
+            const endPoint = L.latLng(order.locationLat, order.locationLng);
+            
+            // إنشاء عنصر تحكم المسار مع خيارات محسنة
             routingControl = L.Routing.control({
-                waypoints: [
-                    L.latLng(currentLocation.lat, currentLocation.lng),
-                    L.latLng(order.locationLat, order.locationLng)
-                ],
+                waypoints: [startPoint, endPoint],
                 routeWhileDragging: false,
                 showAlternatives: false,
                 lineOptions: {
-                    styles: [{ color: '#ff6600', opacity: 0.8, weight: 5 }]
+                    styles: [
+                        {
+                            color: '#ff6600',
+                            opacity: 0.8,
+                            weight: 6,
+                            className: 'animated-route'
+                        }
+                    ]
                 },
-                createMarker: function() { return null; },
+                createMarker: function(i, waypoint, n) {
+                    // إنشاء علامات مخصصة
+                    if (i === 0) {
+                        // علامة البداية (موقع السائق)
+                        return L.marker(waypoint.latLng, {
+                            icon: L.divIcon({
+                                html: `
+                                    <div style="background: #ff6600; width: 50px; height: 50px; border-radius: 50%; 
+                                                 display: flex; align-items: center; justify-content: center; 
+                                                 color: white; border: 3px solid white; box-shadow: 0 3px 15px rgba(0,0,0,0.4);
+                                                 animation: pulse 2s infinite;">
+                                        <i class="fas fa-motorcycle" style="font-size: 22px;"></i>
+                                    </div>
+                                `,
+                                className: 'driver-marker',
+                                iconSize: [50, 50],
+                                iconAnchor: [25, 50]
+                            })
+                        });
+                    } else {
+                        // علامة النهاية (موقع العميل)
+                        return L.marker(waypoint.latLng, {
+                            icon: L.divIcon({
+                                html: `
+                                    <div style="background: #00c851; width: 50px; height: 50px; border-radius: 50%; 
+                                                 display: flex; align-items: center; justify-content: center; 
+                                                 color: white; border: 3px solid white; box-shadow: 0 3px 15px rgba(0,0,0,0.4);">
+                                        <i class="fas fa-home" style="font-size: 22px;"></i>
+                                    </div>
+                                    <div style="background: white; color: #000; padding: 5px 10px; border-radius: 10px; 
+                                                 margin-top: 5px; font-weight: bold; font-size: 12px; box-shadow: 0 3px 8px rgba(0,0,0,0.2); white-space: nowrap;">
+                                        #${order.id}
+                                    </div>
+                                `,
+                                className: 'destination-marker',
+                                iconSize: [50, 50],
+                                iconAnchor: [25, 50]
+                            })
+                        });
+                    }
+                },
                 addWaypoints: false,
                 draggableWaypoints: false,
                 fitSelectedRoutes: true,
-                show: false,
-                language: 'ar'
+                show: true,
+                language: 'ar',
+                formatter: new L.Routing.Formatter({
+                    language: 'ar',
+                    units: 'metric'
+                }),
+                routeLine: function(route, options) {
+                    return L.Routing.line(route, {
+                        styles: options.lineOptions.styles,
+                        addWaypoints: false,
+                        extendToWaypoints: true
+                    });
+                },
+                autoRoute: true,
+                useZoomParameter: false,
+                showInstructions: true
             }).addTo(map);
             
-            // Listen for route found event
+            // إضافة حدث للاستماع عند اكتمال حساب المسار
             routingControl.on('routesfound', function(e) {
+                console.log('Route found!', e);
                 const routes = e.routes;
                 if (routes && routes.length > 0) {
                     const route = routes[0];
                     currentRoute = route;
                     
-                    // Update current delivery info
+                    // إغلاق رسالة التحميل
+                    Swal.close();
+                    
+                    // تحديث معلومات التوصيل
                     showCurrentDelivery(order);
                     updateDeliveryInfo(route);
                     
-                    // Fit bounds to route
-                    map.fitBounds(routes[0].coordinates);
+                    // تكبير الخريطة لتناسب المسار
+                    const bounds = L.latLngBounds([
+                        [currentLocation.lat, currentLocation.lng],
+                        [order.locationLat, order.locationLng]
+                    ]);
+                    map.fitBounds(bounds, { padding: [50, 50] });
+                    
+                    // إضافة تأثير للمسار
+                    const routeLine = routingControl.getPlan().getRoutes()[0].coordinates;
+                    if (routeLine && routeLine.length > 0) {
+                        console.log('Route calculated successfully');
+                        console.log('Distance:', route.summary.totalDistance, 'meters');
+                        console.log('Time:', route.summary.totalTime, 'seconds');
+                    }
+                } else {
+                    Swal.close();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ في المسار',
+                        text: 'تعذر حساب المسار إلى العنوان المطلوب',
+                        background: '#222',
+                        color: '#fff'
+                    });
                 }
             });
             
-            // Show current delivery
-            showCurrentDelivery(order);
+            // إضافة حدث للخطأ
+            routingControl.on('routingerror', function(e) {
+                console.error('Routing error:', e.error);
+                Swal.close();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ في التنقل',
+                    text: 'تعذر إنشاء المسار. يرجى المحاولة مرة أخرى',
+                    background: '#222',
+                    color: '#fff'
+                });
+            });
+            
+            // إضافة مؤقت للسلامة
+            setTimeout(() => {
+                if (Swal.isVisible()) {
+                    Swal.close();
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'مهلة الانتظار',
+                        text: 'استغرقت العملية وقتاً طويلاً. جاري استخدام مسار تقريبي.',
+                        background: '#222',
+                        color: '#fff'
+                    });
+                    
+                    // رسم خط مباشر كبديل
+                    const directLine = L.polyline([
+                        [currentLocation.lat, currentLocation.lng],
+                        [order.locationLat, order.locationLng]
+                    ], {
+                        color: '#ff6600',
+                        weight: 4,
+                        opacity: 0.7,
+                        dashArray: '10, 10'
+                    }).addTo(map);
+                    
+                    showCurrentDelivery(order);
+                    
+                    // حساب المسافة التقريبية
+                    const distance = calculateDistance(
+                        currentLocation.lat, currentLocation.lng,
+                        order.locationLat, order.locationLng
+                    );
+                    
+                    document.getElementById('current-distance').textContent = `${distance.toFixed(1)} كم`;
+                    document.getElementById('current-eta').textContent = `${Math.round(distance * 10)} دقيقة`;
+                    
+                    // تكبير الخريطة
+                    const bounds = L.latLngBounds([
+                        [currentLocation.lat, currentLocation.lng],
+                        [order.locationLat, order.locationLng]
+                    ]);
+                    map.fitBounds(bounds, { padding: [50, 50] });
+                }
+            }, 10000);
+        }
+        
+        // دالة مساعدة لحساب المسافة بين نقطتين
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // نصف قطر الأرض بالكيلومترات
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
         }
         
         // Show current delivery information
@@ -2538,20 +2735,30 @@
             
             document.getElementById('current-distance').textContent = `${distance} كم`;
             document.getElementById('current-eta').textContent = `${time} دقيقة`;
+            
+            // تحديث شريط التقدم
+            const progressBar = document.getElementById('delivery-progress');
+            if (progressBar) {
+                progressBar.style.width = '50%';
+            }
         }
         
         // Hide current delivery
         function hideCurrentDelivery() {
             document.getElementById('current-delivery').classList.remove('active');
+            
+            // إعادة تعيين شريط التقدم
+            const progressBar = document.getElementById('delivery-progress');
+            if (progressBar) {
+                progressBar.style.width = '0%';
+            }
         }
         
         // Update map markers
         function updateMapMarkers() {
-            // Clear existing markers
             orderMarkers.forEach(marker => map.removeLayer(marker));
             orderMarkers = [];
             
-            // Add markers for active and picked orders
             const ordersToShow = [...activeOrders, ...pickedOrders];
             
             ordersToShow.forEach(order => {
@@ -2660,7 +2867,6 @@
         function openStatusModal() {
             document.getElementById('status-modal').classList.add('active');
             
-            // Select current status
             document.querySelectorAll('.status-option').forEach(option => {
                 option.classList.remove('active');
                 if (option.dataset.status === driverStatus) {
@@ -2683,12 +2889,10 @@
         
         async function updateDriverStatus() {
             try {
-                // Update local storage
                 localStorage.setItem('driverStatus', driverStatus);
                 updateDriverStatusUI();
                 closeStatusModal();
                 
-                // Show confirmation
                 Swal.fire({
                     icon: 'success',
                     title: 'تم تحديث الحالة',
@@ -2700,7 +2904,6 @@
                     color: '#fff'
                 });
                 
-                // Reload orders with new status
                 loadOrders();
                 
             } catch (error) {
@@ -2760,7 +2963,6 @@
                         const lng = position.coords.longitude;
                         currentLocation = { lat, lng };
                         
-                        // Update or create driver marker
                         if (driverMarker) {
                             driverMarker.setLatLng([lat, lng]);
                         } else {
@@ -2783,10 +2985,7 @@
                                 .bindPopup('<div style="text-align: center; font-weight: bold; font-family: Cairo;">موقعي الحالي</div>');
                         }
                         
-                        // Center map on location
                         map.setView([lat, lng], 15);
-                        
-                        // Update location on server
                         updateDriverLocation();
                         
                     },
@@ -2824,11 +3023,6 @@
             document.getElementById('order-modal').classList.remove('active');
         }
         
-        function closeAlert() {
-            const alert = document.getElementById('alert-notification');
-            alert.classList.remove('show');
-        }
-        
         // Initialize app when page loads
         document.addEventListener('DOMContentLoaded', init);
         
@@ -2859,7 +3053,6 @@
         
         // Handle resize
         window.addEventListener('resize', () => {
-            // Update sheet height on resize
             updateSheetHeight();
         });
         
@@ -2874,14 +3067,12 @@
         
         // تحسين الأداء على الموبايل
         window.addEventListener('load', () => {
-            // تحسين الـ touch events
             document.addEventListener('touchmove', (e) => {
                 if (e.target.closest('.orders-scroll-container') && !isDraggingSheet) {
                     e.stopPropagation();
                 }
             }, { passive: false });
             
-            // تحسين تجربة التمرير
             const ordersScroll = document.getElementById('orders-list');
             if (ordersScroll) {
                 ordersScroll.addEventListener('scroll', () => {
