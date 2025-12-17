@@ -222,7 +222,7 @@
             height: 100%;
         }
         
-        /* تحسينات الشريط السفلي للطلبات */
+        /* تحسينات الشريط السفلي للطلبات - تم إصلاح مشكلة السحب */
         .orders-panel {
             position: fixed;
             bottom: 0;
@@ -235,15 +235,26 @@
             z-index: 900;
             display: flex;
             flex-direction: column;
-            transform: translateY(calc(100% - 50px));
-            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
             touch-action: pan-y;
             padding-bottom: env(safe-area-inset-bottom);
+            will-change: transform;
+            -webkit-overflow-scrolling: touch;
+            /* يبدأ مفتوحاً جزئياً لعرض المحتوى */
+            transform: translateY(calc(100% - 200px));
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
         .orders-panel.expanded {
             transform: translateY(0);
+        }
+        
+        .orders-panel.collapsed {
+            transform: translateY(calc(100% - 60px));
+        }
+        
+        .orders-panel.dragging {
+            transition: none;
         }
         
         .panel-handle {
@@ -255,6 +266,7 @@
             cursor: pointer;
             touch-action: none;
             min-height: 50px;
+            user-select: none;
         }
         
         .handle-bar {
@@ -265,7 +277,7 @@
             transition: all 0.3s ease;
         }
         
-        .panel-handle:active .handle-bar {
+        .panel-handle.active .handle-bar {
             width: 60px;
             background: var(--primary);
         }
@@ -620,12 +632,13 @@
         /* تحسين عناصر التحكم في الخريطة للجوال */
         .map-controls {
             position: absolute;
-            bottom: calc(65vh + 15px);
+            bottom: 220px;
             right: 12px;
             z-index: 1000;
             display: flex;
             flex-direction: column;
             gap: 8px;
+            transition: bottom 0.3s ease;
         }
         
         .map-control-btn {
@@ -1394,7 +1407,7 @@
             }
             
             .map-controls {
-                bottom: calc(50vh + 15px);
+                bottom: 220px;
             }
         }
         
@@ -1419,7 +1432,7 @@
             }
             
             .map-controls {
-                bottom: calc(80vh + 10px);
+                bottom: 220px;
             }
             
             .current-delivery {
@@ -1551,9 +1564,9 @@
             </div>
         </div>
         
-        <!-- Orders Panel - تم تحسينه للجوال -->
+        <!-- Orders Panel - تم إصلاح مشكلة السحب -->
         <div class="orders-panel" id="orders-panel">
-            <div class="panel-handle" onclick="toggleOrdersPanel()">
+            <div class="panel-handle" id="panel-handle">
                 <div class="handle-bar"></div>
             </div>
             <div class="panel-header">
@@ -1703,10 +1716,15 @@
         let heartbeatInterval = null;
         let currentTab = 'active';
         let isConnected = false;
+        
+        // Panel dragging variables - تم تبسيطها
         let panelIsDragging = false;
         let panelStartY = 0;
         let panelCurrentY = 0;
         let panelHeight = window.innerHeight * 0.65;
+        let panelInitialPosition = 200; // يبدأ مفتوحاً جزئياً (200px مرئية)
+        let panelMinVisible = 60; // الحد الأدنى للجزء المرئي عند الإغلاق
+        let panelState = 'partial'; // 'partial', 'expanded', 'collapsed'
         
         // Initialize the application
         async function init() {
@@ -1743,8 +1761,8 @@
                 // Initialize sounds
                 initSounds();
                 
-                // Initialize touch events for panel
-                initTouchEvents();
+                // Initialize touch events for panel - إصلاح مشكلة السحب
+                initPanelDrag();
                 
                 // Test connection first
                 updateConnectionStatus('جاري اختبار الاتصال...', 'disconnected');
@@ -1807,7 +1825,261 @@
             }
             
             // Update panel height in CSS
-            document.getElementById('orders-panel').style.height = `${panelHeight}px`;
+            const panel = document.getElementById('orders-panel');
+            if (panel) {
+                panel.style.height = `${panelHeight}px`;
+                
+                // Update position based on current state
+                updatePanelPosition();
+            }
+            
+            // Update map controls position
+            updateMapControlsPosition();
+        }
+        
+        // Initialize panel drag functionality - تم إصلاحه
+        function initPanelDrag() {
+            const panel = document.getElementById('orders-panel');
+            const panelHandle = document.getElementById('panel-handle');
+            
+            if (!panel || !panelHandle) {
+                console.error('Panel or handle not found');
+                return;
+            }
+            
+            // Set initial state - يبدأ مفتوحاً جزئياً
+            panelState = 'partial';
+            panel.style.transform = `translateY(calc(100% - ${panelInitialPosition}px))`;
+            
+            // Handle touch start
+            panelHandle.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                panelIsDragging = true;
+                panelStartY = e.touches[0].clientY;
+                panelCurrentY = panelStartY;
+                
+                panel.classList.add('dragging');
+                panelHandle.classList.add('active');
+                
+                // Cancel any existing transitions
+                panel.style.transition = 'none';
+            }, { passive: false });
+            
+            // Handle mouse start (for testing on desktop)
+            panelHandle.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                panelIsDragging = true;
+                panelStartY = e.clientY;
+                panelCurrentY = panelStartY;
+                
+                panel.classList.add('dragging');
+                panelHandle.classList.add('active');
+                
+                // Cancel any existing transitions
+                panel.style.transition = 'none';
+                
+                // Add mouse move and up listeners
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
+            });
+            
+            // Handle touch move
+            document.addEventListener('touchmove', function(e) {
+                if (!panelIsDragging) return;
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
+                panelCurrentY = e.touches[0].clientY;
+                updatePanelPositionDuringDrag();
+            }, { passive: false });
+            
+            // Handle mouse move
+            function handleMouseMove(e) {
+                if (!panelIsDragging) return;
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
+                panelCurrentY = e.clientY;
+                updatePanelPositionDuringDrag();
+            }
+            
+            // Handle touch end
+            document.addEventListener('touchend', function(e) {
+                if (!panelIsDragging) return;
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
+                finishPanelDrag();
+            }, { passive: false });
+            
+            // Handle mouse up
+            function handleMouseUp(e) {
+                if (!panelIsDragging) return;
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
+                finishPanelDrag();
+                
+                // Remove mouse listeners
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp);
+            }
+            
+            // Click handler for panel handle
+            panelHandle.addEventListener('click', function(e) {
+                // Only toggle if not dragging
+                if (!panelIsDragging) {
+                    togglePanelState();
+                }
+            });
+            
+            console.log('✅ Panel drag initialized');
+        }
+        
+        // Update panel position during drag
+        function updatePanelPositionDuringDrag() {
+            const panel = document.getElementById('orders-panel');
+            if (!panel) return;
+            
+            const diff = panelStartY - panelCurrentY;
+            const currentTranslate = getCurrentPanelTranslate();
+            
+            // Calculate new translate value
+            let newTranslate = currentTranslate + diff;
+            
+            // Limit the translate value
+            newTranslate = Math.max(0, Math.min(panelHeight - panelMinVisible, newTranslate));
+            
+            // Apply the transform
+            panel.style.transform = `translateY(${newTranslate}px)`;
+            
+            // Update start position for next move
+            panelStartY = panelCurrentY;
+        }
+        
+        // Finish panel drag and decide final state
+        function finishPanelDrag() {
+            panelIsDragging = false;
+            
+            const panel = document.getElementById('orders-panel');
+            const panelHandle = document.getElementById('panel-handle');
+            
+            panel.classList.remove('dragging');
+            panelHandle.classList.remove('active');
+            
+            // Restore transition
+            panel.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+            
+            // Get current translate value
+            const currentTranslate = getCurrentPanelTranslate();
+            const panelMiddle = panelHeight / 2;
+            
+            // Decide final state based on current position
+            if (currentTranslate < panelHeight * 0.33) {
+                // Near top - expand
+                expandPanel();
+            } else if (currentTranslate < panelHeight * 0.66) {
+                // Middle - partial
+                setPartialPanel();
+            } else {
+                // Near bottom - collapse
+                collapsePanel();
+            }
+        }
+        
+        // Get current panel translate value
+        function getCurrentPanelTranslate() {
+            const panel = document.getElementById('orders-panel');
+            if (!panel) return panelInitialPosition;
+            
+            const transform = panel.style.transform;
+            if (!transform || transform === 'none') return panelInitialPosition;
+            
+            const match = transform.match(/translateY\(([^)]+)px\)/);
+            if (match && match[1]) {
+                return parseFloat(match[1]);
+            }
+            
+            return panelInitialPosition;
+        }
+        
+        // Toggle panel state
+        function togglePanelState() {
+            if (panelState === 'partial') {
+                expandPanel();
+            } else if (panelState === 'expanded') {
+                collapsePanel();
+            } else if (panelState === 'collapsed') {
+                setPartialPanel();
+            }
+        }
+        
+        // Set panel to partial state
+        function setPartialPanel() {
+            const panel = document.getElementById('orders-panel');
+            panel.classList.remove('expanded', 'collapsed');
+            panel.style.transform = `translateY(calc(100% - ${panelInitialPosition}px))`;
+            panelState = 'partial';
+            
+            updateMapControlsPosition();
+        }
+        
+        // Expand panel
+        function expandPanel() {
+            const panel = document.getElementById('orders-panel');
+            panel.classList.add('expanded');
+            panel.classList.remove('collapsed');
+            panel.style.transform = 'translateY(0)';
+            panelState = 'expanded';
+            
+            updateMapControlsPosition();
+        }
+        
+        // Collapse panel
+        function collapsePanel() {
+            const panel = document.getElementById('orders-panel');
+            panel.classList.add('collapsed');
+            panel.classList.remove('expanded');
+            panel.style.transform = `translateY(calc(100% - ${panelMinVisible}px))`;
+            panelState = 'collapsed';
+            
+            updateMapControlsPosition();
+        }
+        
+        // Update map controls position based on panel state
+        function updateMapControlsPosition() {
+            const mapControls = document.querySelector('.map-controls');
+            if (!mapControls) return;
+            
+            if (panelState === 'expanded') {
+                mapControls.style.bottom = `calc(${panelHeight}px + 15px)`;
+            } else if (panelState === 'partial') {
+                mapControls.style.bottom = `220px`;
+            } else {
+                mapControls.style.bottom = `calc(${panelMinVisible}px + 15px)`;
+            }
+        }
+        
+        // Update panel position
+        function updatePanelPosition() {
+            const panel = document.getElementById('orders-panel');
+            if (!panel) return;
+            
+            if (panelState === 'expanded') {
+                panel.style.transform = 'translateY(0)';
+            } else if (panelState === 'partial') {
+                panel.style.transform = `translateY(calc(100% - ${panelInitialPosition}px))`;
+            } else {
+                panel.style.transform = `translateY(calc(100% - ${panelMinVisible}px))`;
+            }
         }
         
         // Test API connection
@@ -1932,74 +2204,6 @@
             } catch (e) {
                 console.log('Sound initialization failed:', e);
             }
-        }
-        
-        // Initialize touch events for panel - محسّن للجوال
-        function initTouchEvents() {
-            const panel = document.getElementById('orders-panel');
-            const panelHandle = document.querySelector('.panel-handle');
-            
-            // Handle touch start
-            panelHandle.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                panelIsDragging = true;
-                panelStartY = e.touches[0].clientY;
-                panelCurrentY = panelStartY;
-                panel.style.transition = 'none';
-                
-                // Add active class for visual feedback
-                panelHandle.classList.add('active');
-            }, { passive: false });
-            
-            // Handle touch move
-            document.addEventListener('touchmove', (e) => {
-                if (!panelIsDragging) return;
-                
-                e.preventDefault();
-                panelCurrentY = e.touches[0].clientY;
-                const diff = panelStartY - panelCurrentY;
-                
-                if (diff > 0) {
-                    // Swiping up - expand
-                    const translateY = Math.max(0, (panelHeight - diff));
-                    panel.style.transform = `translateY(${translateY}px)`;
-                } else {
-                    // Swiping down - collapse
-                    const translateY = Math.min(panelHeight - 50, -diff);
-                    panel.style.transform = `translateY(calc(100% - 50px + ${translateY}px))`;
-                }
-            }, { passive: false });
-            
-            // Handle touch end
-            document.addEventListener('touchend', () => {
-                if (!panelIsDragging) return;
-                
-                panelIsDragging = false;
-                panel.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-                panelHandle.classList.remove('active');
-                
-                const currentTransform = panel.style.transform;
-                const currentTranslate = parseInt(currentTransform.match(/translateY\(([^)]+)\)/)[1]) || 0;
-                
-                if (currentTranslate < panelHeight / 2) {
-                    // Expand
-                    panel.classList.add('expanded');
-                    panel.style.transform = `translateY(0)`;
-                } else {
-                    // Collapse
-                    panel.classList.remove('expanded');
-                    panel.style.transform = `translateY(calc(100% - 50px))`;
-                }
-            });
-            
-            // Add click handler for panel handle
-            panelHandle.addEventListener('click', (e) => {
-                if (!panelIsDragging) {
-                    toggleOrdersPanel();
-                }
-            });
-            
-            console.log('✅ Touch events initialized');
         }
         
         // Show error message
@@ -2145,7 +2349,7 @@
             console.log('✅ Location updates started');
         }
         
-        // Update driver location on server - MODIFIED: Don't change driver status
+        // Update driver location on server
         async function updateDriverLocation() {
             if (!currentLocation) {
                 console.log('No location available to update');
@@ -2325,7 +2529,7 @@
                 </div>
                 <div class="notification-actions">
                     <button onclick="showAllOrdersOnMap()">عرض على الخريطة</button>
-                    <button onclick="switchOrdersTab('active'); expandOrdersPanel()">عرض الطلبات</button>
+                    <button onclick="switchOrdersTab('active'); expandPanel()">عرض الطلبات</button>
                 </div>
             `;
             
@@ -2595,6 +2799,9 @@
             
             // Render orders list
             renderOrdersList();
+            
+            // Expand panel to show orders
+            expandPanel();
         }
         
         // Select an order
@@ -2618,7 +2825,7 @@
                 }
                 
                 // Expand panel on mobile
-                expandOrdersPanel();
+                expandPanel();
             }
         }
         
@@ -2868,11 +3075,6 @@
                             color: '#fff'
                         });
                         
-                        // لا تغيير حالة السائق تلقائياً - يبقى متاحاً
-                        // driverStatus = 'busy'; // إزالة هذا السطر
-                        // updateDriverStatusUI(); // إزالة هذا السطر
-                        // updateDriverStatusOnServer(); // إزالة هذا السطر
-                        
                         // Reload orders
                         loadOrders();
                         
@@ -2897,7 +3099,7 @@
             }
         }
         
-        // Mark order as delivered - MODIFIED: No automatic status change
+        // Mark order as delivered
         async function markDelivered(orderId) {
             try {
                 const result = await Swal.fire({
@@ -2953,11 +3155,6 @@
                             background: '#222',
                             color: '#fff'
                         });
-                        
-                        // لا تغيير حالة السائق تلقائياً - يبقى كما هو
-                        // driverStatus = 'online'; // إزالة هذا السطر
-                        // updateDriverStatusUI(); // إزالة هذا السطر
-                        // updateDriverStatusOnServer(); // إزالة هذا السطر
                         
                         // Hide current delivery
                         hideCurrentDelivery();
@@ -3482,24 +3679,6 @@
             }
         }
         
-        // Panel control functions
-        function toggleOrdersPanel() {
-            const panel = document.getElementById('orders-panel');
-            panel.classList.toggle('expanded');
-        }
-        
-        function expandOrdersPanel() {
-            const panel = document.getElementById('orders-panel');
-            panel.classList.add('expanded');
-            panel.style.transform = 'translateY(0)';
-        }
-        
-        function collapseOrdersPanel() {
-            const panel = document.getElementById('orders-panel');
-            panel.classList.remove('expanded');
-            panel.style.transform = `translateY(calc(100% - 50px))`;
-        }
-        
         function closeOrderModal() {
             document.getElementById('order-modal').classList.remove('active');
         }
@@ -3585,16 +3764,19 @@
         });
         
         // Prevent pull-to-refresh on mobile
-        document.addEventListener('touchmove', function(e) {
-            if (panelIsDragging || 
-                e.target.closest('.orders-list') || 
-                e.target.closest('.order-modal-content') ||
-                e.target.closest('.status-modal-content')) {
-                return;
-            }
+        let touchStartY = 0;
+        
+        document.addEventListener('touchstart', function(e) {
+            if (panelIsDragging) return;
             
-            // Prevent default only if we're at the top of the page
-            if (window.scrollY === 0) {
+            touchStartY = e.touches[0].clientY;
+        }, { passive: true });
+        
+        document.addEventListener('touchmove', function(e) {
+            if (panelIsDragging) return;
+            
+            // Prevent pull-to-refresh only when at the top
+            if (window.scrollY === 0 && touchStartY <= 50) {
                 e.preventDefault();
             }
         }, { passive: false });
