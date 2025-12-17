@@ -50,6 +50,9 @@
             -webkit-tap-highlight-color: transparent;
             margin: 0;
             padding: 0;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            user-select: none;
         }
         
         html, body {
@@ -61,6 +64,7 @@
             left: 0;
             right: 0;
             bottom: 0;
+            -webkit-text-size-adjust: 100%;
         }
         
         body {
@@ -68,9 +72,11 @@
             background-color: var(--dark);
             color: var(--text);
             position: relative;
+            font-size: 14px;
+            touch-action: manipulation;
         }
         
-        /* Header */
+        /* Header - تحسين للجوال */
         .app-header {
             position: fixed;
             top: 0;
@@ -84,43 +90,47 @@
             z-index: 1000;
             display: flex;
             align-items: center;
-            padding: 0 15px;
+            padding: 0 12px;
             justify-content: space-between;
+            padding-top: env(safe-area-inset-top);
         }
         
         .logo-container {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
         
         .logo {
-            width: 40px;
-            height: 40px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             border: 2px solid var(--primary);
             object-fit: cover;
         }
         
         .brand-text {
-            font-size: 1.1rem;
+            font-size: 0.95rem;
             font-weight: 900;
             color: var(--text);
+            line-height: 1.2;
         }
         
         .driver-status {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
+            gap: 6px;
+            padding: 6px 10px;
             background: rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
+            border-radius: 18px;
             cursor: pointer;
+            min-width: 110px;
+            justify-content: flex-end;
         }
         
         .status-indicator {
-            width: 10px;
-            height: 10px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             background: var(--driver-status-offline);
             animation: pulse 2s infinite;
@@ -142,7 +152,7 @@
         }
         
         .status-text {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: 600;
             color: var(--text-gray);
         }
@@ -158,17 +168,18 @@
         /* Connection Status */
         .connection-status {
             position: fixed;
-            top: 70px;
-            right: 15px;
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-size: 0.8rem;
+            top: calc(60px + env(safe-area-inset-top));
+            right: 12px;
+            padding: 6px 12px;
+            border-radius: 18px;
+            font-size: 0.75rem;
             font-weight: 600;
             z-index: 2000;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             animation: slideDown 0.3s ease;
+            max-width: 200px;
         }
         
         .connection-status.connected {
@@ -194,6 +205,8 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
         }
         
         /* Map Container */
@@ -209,22 +222,24 @@
             height: 100%;
         }
         
-        /* Orders Panel */
+        /* تحسينات الشريط السفلي للطلبات */
         .orders-panel {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            height: 60vh;
+            height: 65vh;
             background: var(--darker);
             border-top: 1px solid var(--border);
             border-radius: 20px 20px 0 0;
             z-index: 900;
             display: flex;
             flex-direction: column;
-            transform: translateY(calc(100% - 60px));
+            transform: translateY(calc(100% - 50px));
             transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
+            touch-action: pan-y;
+            padding-bottom: env(safe-area-inset-bottom);
         }
         
         .orders-panel.expanded {
@@ -233,35 +248,46 @@
         
         .panel-handle {
             width: 100%;
-            padding: 15px;
+            padding: 12px;
             display: flex;
             justify-content: center;
             align-items: center;
             cursor: pointer;
+            touch-action: none;
+            min-height: 50px;
         }
         
         .handle-bar {
-            width: 40px;
+            width: 50px;
             height: 4px;
             background: var(--border);
             border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+        
+        .panel-handle:active .handle-bar {
+            width: 60px;
+            background: var(--primary);
         }
         
         .panel-header {
-            padding: 15px;
+            padding: 12px;
             background: var(--card);
             border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
         
         .panel-title {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
         
         .panel-title h2 {
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             font-weight: 800;
             color: var(--text);
             margin: 0;
@@ -270,10 +296,12 @@
         .orders-count {
             background: var(--primary);
             color: #000;
-            padding: 4px 12px;
+            padding: 4px 10px;
             border-radius: 20px;
             font-weight: 800;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
+            min-width: 30px;
+            text-align: center;
         }
         
         .tabs {
@@ -281,11 +309,12 @@
             background: #2a2a2a;
             border-radius: 10px;
             overflow: hidden;
+            touch-action: pan-x;
         }
         
         .tab-btn {
             flex: 1;
-            padding: 12px;
+            padding: 12px 8px;
             background: transparent;
             border: none;
             color: var(--text-gray);
@@ -293,7 +322,9 @@
             font-weight: 700;
             cursor: pointer;
             transition: 0.3s;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
+            min-height: 44px;
+            -webkit-tap-highlight-color: rgba(255, 102, 0, 0.1);
         }
         
         .tab-btn.active {
@@ -301,31 +332,42 @@
             color: #000;
         }
         
+        .tab-btn:active {
+            transform: scale(0.95);
+        }
+        
+        /* تحسين قائمة الطلبات للجوال */
         .orders-list {
             flex: 1;
             overflow-y: auto;
-            padding: 15px;
+            padding: 12px;
             -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            overscroll-behavior: contain;
+        }
+        
+        .orders-list::-webkit-scrollbar {
+            display: none;
         }
         
         .order-card {
             background: var(--card);
             border-radius: 12px;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             overflow: hidden;
             border: 1px solid var(--border);
             cursor: pointer;
             transition: all 0.3s ease;
             position: relative;
+            -webkit-tap-highlight-color: rgba(255, 102, 0, 0.1);
         }
         
-        .order-card:hover, .order-card:active {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        .order-card:active {
+            transform: scale(0.98);
             border-color: var(--primary);
         }
         
-        .order-card.active {
+        .order-card:hover, .order-card.active {
             border-color: var(--primary);
             box-shadow: 0 0 0 2px rgba(255, 102, 0, 0.3);
         }
@@ -347,7 +389,7 @@
         }
         
         .order-header {
-            padding: 12px;
+            padding: 10px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -356,18 +398,18 @@
         }
         
         .order-id {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: 900;
             color: var(--primary);
         }
         
         .order-status-badge {
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
             font-weight: 800;
             text-align: center;
-            min-width: 85px;
+            min-width: 80px;
         }
         
         .status-new {
@@ -403,21 +445,21 @@
         }
         
         .order-body {
-            padding: 12px;
+            padding: 10px;
         }
         
         .order-customer {
             display: flex;
             align-items: center;
-            gap: 10px;
-            margin-bottom: 12px;
+            gap: 8px;
+            margin-bottom: 10px;
             padding-bottom: 8px;
             border-bottom: 1px solid var(--border);
         }
         
         .customer-avatar {
-            width: 35px;
-            height: 35px;
+            width: 32px;
+            height: 32px;
             background: var(--primary);
             border-radius: 50%;
             display: flex;
@@ -425,61 +467,79 @@
             justify-content: center;
             color: #000;
             font-weight: 800;
-            font-size: 1rem;
+            font-size: 0.9rem;
+            flex-shrink: 0;
         }
         
         .customer-info {
             flex: 1;
+            min-width: 0;
+            overflow: hidden;
         }
         
         .customer-name {
             font-weight: 700;
-            font-size: 1rem;
+            font-size: 0.9rem;
             margin-bottom: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         .customer-phone {
             color: var(--text-gray);
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             direction: ltr;
             text-align: right;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         .order-items {
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
         
         .order-items-title {
             font-weight: 700;
             margin-bottom: 6px;
             color: var(--text-gray);
-            font-size: 0.85rem;
+            font-size: 0.8rem;
         }
         
         .order-items-list {
             list-style: none;
-            max-height: 60px;
+            max-height: 50px;
             overflow-y: auto;
-            padding-left: 12px;
+            padding-left: 10px;
+            scrollbar-width: none;
+        }
+        
+        .order-items-list::-webkit-scrollbar {
+            display: none;
         }
         
         .order-item {
-            padding: 4px 0;
+            padding: 3px 0;
             color: var(--text);
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             display: flex;
             align-items: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         .order-item::before {
             content: "•";
             color: var(--primary);
             margin-left: 6px;
-            font-size: 1.1rem;
+            font-size: 1rem;
+            flex-shrink: 0;
         }
         
         .order-footer {
-            padding: 12px;
+            padding: 10px;
             background: rgba(0,0,0,0.2);
             border-top: 1px solid var(--border);
             display: flex;
@@ -489,29 +549,29 @@
         
         .order-total {
             font-weight: 900;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             color: var(--primary);
         }
         
         .order-time {
             color: var(--text-gray);
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 4px;
         }
         
         .order-actions {
             display: flex;
-            gap: 8px;
-            padding: 12px;
+            gap: 6px;
+            padding: 10px;
             border-top: 1px solid var(--border);
             background: rgba(0,0,0,0.1);
         }
         
         .action-btn {
             flex: 1;
-            padding: 10px;
+            padding: 10px 8px;
             border: none;
             border-radius: 8px;
             font-family: 'Cairo';
@@ -521,9 +581,15 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
-            font-size: 0.9rem;
+            gap: 5px;
+            font-size: 0.85rem;
             white-space: nowrap;
+            min-height: 44px;
+            -webkit-tap-highlight-color: rgba(255, 102, 0, 0.2);
+        }
+        
+        .action-btn:active:not(:disabled) {
+            transform: scale(0.95);
         }
         
         .action-btn:disabled {
@@ -538,7 +604,6 @@
         
         .btn-pickup:hover:not(:disabled), .btn-pickup:active:not(:disabled) {
             background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
-            transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(255, 102, 0, 0.3);
         }
         
@@ -549,24 +614,23 @@
         
         .btn-delivered:hover:not(:disabled), .btn-delivered:active:not(:disabled) {
             background: linear-gradient(135deg, var(--success) 0%, #00b248 100%);
-            transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0, 200, 81, 0.3);
         }
         
-        /* Map Controls */
+        /* تحسين عناصر التحكم في الخريطة للجوال */
         .map-controls {
             position: absolute;
-            bottom: calc(60vh + 15px);
-            right: 15px;
+            bottom: calc(65vh + 15px);
+            right: 12px;
             z-index: 1000;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
         }
         
         .map-control-btn {
-            width: 45px;
-            height: 45px;
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
             background: var(--card);
             border: 2px solid var(--border);
@@ -575,31 +639,34 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.1rem;
+            font-size: 1rem;
             transition: all 0.3s ease;
             box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            -webkit-tap-highlight-color: rgba(255, 102, 0, 0.1);
         }
         
-        .map-control-btn:hover, .map-control-btn:active {
+        .map-control-btn:active {
             background: var(--primary);
             color: #000;
             border-color: var(--primary);
             transform: scale(1.1);
         }
         
-        /* Status Modal */
+        /* Status Modal - تحسين للجوال */
         .status-modal {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.95);
+            background: rgba(0,0,0,0.98);
             z-index: 2000;
             display: none;
             align-items: center;
             justify-content: center;
             padding: 20px;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
         }
         
         .status-modal.active {
@@ -609,12 +676,15 @@
         .status-modal-content {
             background: linear-gradient(135deg, var(--card) 0%, var(--darker) 100%);
             border-radius: 20px;
-            padding: 25px;
+            padding: 20px;
             width: 100%;
             max-width: 400px;
             border: 2px solid var(--border);
             box-shadow: 0 10px 40px rgba(0,0,0,0.5);
             animation: modalSlideUp 0.3s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
         
         @keyframes modalSlideUp {
@@ -630,11 +700,11 @@
         
         .status-modal-header {
             text-align: center;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
         
         .status-modal-header h3 {
-            font-size: 1.6rem;
+            font-size: 1.5rem;
             font-weight: 900;
             color: var(--primary);
             margin-bottom: 8px;
@@ -642,18 +712,18 @@
         
         .status-modal-header p {
             color: var(--text-gray);
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
         
         .status-options {
             display: flex;
             flex-direction: column;
-            gap: 12px;
-            margin-bottom: 25px;
+            gap: 10px;
+            margin-bottom: 20px;
         }
         
         .status-option {
-            padding: 18px;
+            padding: 16px;
             border-radius: 12px;
             background: var(--card-light);
             border: 2px solid transparent;
@@ -662,11 +732,13 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            -webkit-tap-highlight-color: rgba(255, 102, 0, 0.1);
         }
         
-        .status-option:hover, .status-option:active {
+        .status-option:active {
             background: rgba(255, 102, 0, 0.1);
             border-color: var(--primary);
+            transform: scale(0.98);
         }
         
         .status-option.active {
@@ -676,14 +748,15 @@
         }
         
         .status-icon {
-            width: 45px;
-            height: 45px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.4rem;
+            font-size: 1.2rem;
             color: #000;
+            flex-shrink: 0;
         }
         
         .status-icon.online {
@@ -700,23 +773,24 @@
         
         .status-info {
             flex: 1;
+            min-width: 0;
         }
         
         .status-title {
             font-weight: 800;
-            font-size: 1.1rem;
+            font-size: 1rem;
             margin-bottom: 4px;
         }
         
         .status-description {
             color: var(--text-gray);
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             line-height: 1.4;
         }
         
         .status-actions {
             display: flex;
-            gap: 10px;
+            gap: 8px;
         }
         
         .status-btn {
@@ -728,17 +802,18 @@
             font-weight: 800;
             cursor: pointer;
             transition: all 0.3s ease;
-            font-size: 1rem;
+            font-size: 0.95rem;
+            min-height: 48px;
+            -webkit-tap-highlight-color: rgba(255, 102, 0, 0.1);
+        }
+        
+        .status-btn:active {
+            transform: translateY(-2px);
         }
         
         .status-btn.confirm {
             background: linear-gradient(135deg, var(--success) 0%, var(--success-dark) 100%);
             color: white;
-        }
-        
-        .status-btn.confirm:hover, .status-btn.confirm:active {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 200, 81, 0.3);
         }
         
         .status-btn.cancel {
@@ -747,12 +822,12 @@
             color: var(--text-gray);
         }
         
-        .status-btn.cancel:hover, .status-btn.cancel:active {
+        .status-btn.cancel:active {
             background: var(--card-light);
             color: var(--text);
         }
         
-        /* Order Details Modal */
+        /* تحسينات الـ Order Details Modal للجوال */
         .order-modal {
             position: fixed;
             top: 0;
@@ -765,6 +840,8 @@
             align-items: center;
             justify-content: center;
             padding: 15px;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
         }
         
         .order-modal.active {
@@ -784,7 +861,7 @@
         }
         
         .order-modal-header {
-            padding: 18px;
+            padding: 15px;
             border-bottom: 1px solid var(--border);
             background: rgba(0,0,0,0.2);
             position: sticky;
@@ -796,15 +873,15 @@
         }
         
         .order-modal-header h3 {
-            font-size: 1.4rem;
+            font-size: 1.3rem;
             font-weight: 900;
             color: var(--primary);
             margin: 0;
         }
         
         .close-modal {
-            width: 38px;
-            height: 38px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             background: var(--card-light);
             border: none;
@@ -813,23 +890,25 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.1rem;
+            font-size: 1rem;
             transition: 0.3s;
+            flex-shrink: 0;
+            -webkit-tap-highlight-color: rgba(255, 102, 0, 0.1);
         }
         
-        .close-modal:hover, .close-modal:active {
+        .close-modal:active {
             background: var(--danger);
             color: white;
             transform: rotate(90deg);
         }
         
         .order-modal-body {
-            padding: 18px;
+            padding: 15px;
         }
         
         .order-detail-section {
-            margin-bottom: 20px;
-            padding-bottom: 15px;
+            margin-bottom: 15px;
+            padding-bottom: 12px;
             border-bottom: 1px solid var(--border);
         }
         
@@ -840,9 +919,9 @@
         
         .section-title {
             font-weight: 800;
-            font-size: 1.1rem;
+            font-size: 1rem;
             color: var(--primary);
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -851,59 +930,60 @@
         .detail-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
+            gap: 8px;
         }
         
         .detail-item {
             background: var(--card-light);
-            padding: 12px;
-            border-radius: 10px;
+            padding: 10px;
+            border-radius: 8px;
             border: 1px solid var(--border);
         }
         
         .detail-label {
             color: var(--text-gray);
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             margin-bottom: 4px;
         }
         
         .detail-value {
             font-weight: 700;
-            font-size: 1rem;
+            font-size: 0.9rem;
         }
         
         .notes-container {
             background: #332b00;
             border: 1px solid #665500;
-            border-radius: 10px;
-            padding: 12px;
-            margin-top: 10px;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 8px;
         }
         
         .notes-title {
             color: #ffdd44;
             font-weight: 700;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             display: flex;
             align-items: center;
             gap: 6px;
+            font-size: 0.9rem;
         }
         
         .notes-content {
             color: #ffdd44;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             line-height: 1.6;
         }
         
-        /* Order Tracking */
+        /* تحسين Order Tracking للجوال */
         .order-tracking {
             position: relative;
-            padding: 15px 0;
+            padding: 12px 0;
         }
         
         .tracking-timeline {
             position: relative;
-            padding-right: 25px;
+            padding-right: 20px;
         }
         
         .tracking-timeline::before {
@@ -912,15 +992,15 @@
             right: 0;
             top: 0;
             bottom: 0;
-            width: 3px;
+            width: 2px;
             background: var(--border);
-            border-radius: 2px;
+            border-radius: 1px;
         }
         
         .tracking-step {
             position: relative;
-            margin-bottom: 25px;
-            padding-right: 35px;
+            margin-bottom: 20px;
+            padding-right: 30px;
         }
         
         .tracking-step:last-child {
@@ -930,7 +1010,7 @@
         .tracking-step.active .tracking-icon {
             background: var(--primary);
             color: #000;
-            box-shadow: 0 0 0 5px rgba(255, 102, 0, 0.2);
+            box-shadow: 0 0 0 4px rgba(255, 102, 0, 0.2);
         }
         
         .tracking-step.completed .tracking-icon {
@@ -947,13 +1027,13 @@
             position: absolute;
             right: -10px;
             top: 0;
-            width: 25px;
-            height: 25px;
+            width: 22px;
+            height: 22px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             z-index: 2;
             transition: all 0.3s ease;
         }
@@ -965,7 +1045,7 @@
         .tracking-title {
             font-weight: 800;
             margin-bottom: 4px;
-            font-size: 1rem;
+            font-size: 0.9rem;
         }
         
         .tracking-step.active .tracking-title {
@@ -978,18 +1058,18 @@
         
         .tracking-desc {
             color: var(--text-gray);
-            font-size: 0.85rem;
+            font-size: 0.8rem;
         }
         
-        /* Alert Notification */
+        /* تحسين Alert Notification للجوال */
         .alert-notification {
             position: fixed;
-            bottom: 15px;
-            right: 15px;
-            left: 15px;
+            bottom: 80px;
+            right: 12px;
+            left: 12px;
             background: linear-gradient(135deg, var(--card) 0%, #1a2b3c 100%);
             border-radius: 12px;
-            padding: 15px;
+            padding: 12px;
             border-left: 5px solid var(--order-status-new);
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             transform: translateY(100px);
@@ -1007,16 +1087,16 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
         
         .alert-title {
             font-weight: 800;
-            font-size: 1.1rem;
+            font-size: 1rem;
             color: var(--order-status-new);
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
         
         .alert-close {
@@ -1024,12 +1104,13 @@
             border: none;
             color: var(--text-gray);
             cursor: pointer;
-            font-size: 1.1rem;
+            font-size: 1rem;
             padding: 5px;
+            -webkit-tap-highlight-color: rgba(255, 102, 0, 0.1);
         }
         
         .alert-body {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             color: var(--text);
             line-height: 1.5;
         }
@@ -1037,20 +1118,20 @@
         .alert-order-id {
             font-weight: 900;
             color: var(--primary);
-            margin: 5px 0;
+            margin: 4px 0;
         }
         
-        /* Current Delivery Info */
+        /* تحسين Current Delivery Info للجوال */
         .current-delivery {
             position: absolute;
-            top: 15px;
-            left: 15px;
-            right: 15px;
+            top: 12px;
+            left: 12px;
+            right: 12px;
             background: rgba(18, 18, 18, 0.95);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border-radius: 15px;
-            padding: 15px;
+            border-radius: 12px;
+            padding: 12px;
             border: 2px solid var(--primary);
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             z-index: 1000;
@@ -1077,82 +1158,92 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
         
         .current-delivery-title {
             font-weight: 900;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             color: var(--primary);
+        }
+        
+        .current-delivery-close {
+            background: transparent;
+            border: none;
+            color: var(--text-gray);
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 5px;
+            -webkit-tap-highlight-color: rgba(255, 102, 0, 0.1);
         }
         
         .current-delivery-info {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-bottom: 12px;
+            gap: 8px;
+            margin-bottom: 10px;
         }
         
         .current-delivery-item {
             background: rgba(255, 102, 0, 0.1);
-            padding: 10px;
+            padding: 8px;
             border-radius: 8px;
             border: 1px solid rgba(255, 102, 0, 0.2);
         }
         
         .current-delivery-label {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             color: var(--text-gray);
             margin-bottom: 4px;
         }
         
         .current-delivery-value {
             font-weight: 700;
-            font-size: 1rem;
+            font-size: 0.9rem;
         }
         
         /* Progress Bar */
         .progress-bar {
-            height: 5px;
+            height: 4px;
             background: var(--border);
-            border-radius: 3px;
-            margin: 12px 0;
+            border-radius: 2px;
+            margin: 10px 0;
             overflow: hidden;
         }
         
         .progress-fill {
             height: 100%;
             background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
-            border-radius: 3px;
+            border-radius: 2px;
             width: 0%;
             transition: width 0.5s ease;
         }
         
-        /* Empty State */
+        /* تحسين Empty State للجوال */
         .empty-state {
             text-align: center;
-            padding: 40px 15px;
+            padding: 30px 12px;
             color: var(--text-gray);
         }
         
         .empty-icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
+            font-size: 2.5rem;
+            margin-bottom: 12px;
             opacity: 0.3;
         }
         
         .empty-title {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             margin-bottom: 8px;
             color: var(--text);
         }
         
         .empty-description {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             line-height: 1.5;
         }
         
-        /* Loading */
+        /* تحسين Loading للجوال */
         .loading {
             display: flex;
             flex-direction: column;
@@ -1161,51 +1252,53 @@
             height: 100%;
             color: var(--text-gray);
             text-align: center;
+            padding: 20px;
         }
         
         .spinner {
-            width: 45px;
-            height: 45px;
+            width: 40px;
+            height: 40px;
             border: 3px solid rgba(255, 102, 0, 0.3);
             border-radius: 50%;
             border-top-color: var(--primary);
             animation: spin 1s linear infinite;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
         
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
         
-        /* Driver Notification */
+        /* تحسين Driver Notification للجوال */
         .driver-notification {
             position: fixed;
-            top: 20px;
-            right: 20px;
+            top: 15px;
+            right: 12px;
+            left: 12px;
             background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
             border: 2px solid #00c851;
             border-radius: 12px;
-            padding: 15px;
-            width: 300px;
-            max-width: 90%;
+            padding: 12px;
             z-index: 2000;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             animation: slideInRight 0.3s ease;
+            max-width: 400px;
+            margin: 0 auto;
         }
         
         .notification-header {
             display: flex;
             align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
-            padding-bottom: 10px;
+            gap: 8px;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
             border-bottom: 1px solid #333;
         }
         
         .notification-header h3 {
             margin: 0;
             color: #00c851;
-            font-size: 1.1rem;
+            font-size: 1rem;
         }
         
         .notification-close-btn {
@@ -1214,41 +1307,179 @@
             border: none;
             color: #888;
             cursor: pointer;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
+            padding: 5px;
+            -webkit-tap-highlight-color: rgba(255, 102, 0, 0.1);
         }
         
         .notification-body {
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             color: #ccc;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             line-height: 1.5;
         }
         
         .notification-actions {
             display: flex;
-            gap: 10px;
+            gap: 8px;
         }
         
         .notification-actions button {
             flex: 1;
-            padding: 8px 12px;
+            padding: 8px 10px;
             border: none;
             border-radius: 6px;
             background: #333;
             color: white;
             cursor: pointer;
             font-family: 'Cairo';
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             transition: 0.3s;
+            min-height: 40px;
+            -webkit-tap-highlight-color: rgba(255, 102, 0, 0.1);
         }
         
-        .notification-actions button:hover {
+        .notification-actions button:active {
             background: #444;
+            transform: scale(0.95);
         }
         
         @keyframes slideInRight {
             from { transform: translateX(100px); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
+        }
+        
+        /* تحسينات خاصة للشاشات الصغيرة جداً */
+        @media (max-width: 360px) {
+            .brand-text {
+                font-size: 0.85rem;
+            }
+            
+            .driver-status {
+                min-width: 100px;
+            }
+            
+            .status-text {
+                font-size: 0.7rem;
+            }
+            
+            .order-id {
+                font-size: 1rem;
+            }
+            
+            .order-status-badge {
+                min-width: 70px;
+                font-size: 0.65rem;
+                padding: 3px 6px;
+            }
+            
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .tab-btn {
+                padding: 10px;
+                min-height: 40px;
+            }
+        }
+        
+        /* تحسينات للشاشات المتوسطة */
+        @media (min-width: 768px) and (max-width: 1024px) {
+            .orders-panel {
+                height: 50vh;
+            }
+            
+            .map-controls {
+                bottom: calc(50vh + 15px);
+            }
+        }
+        
+        /* تأثيرات اللمس */
+        .touch-feedback:active {
+            opacity: 0.7;
+        }
+        
+        /* تحسينات لعناصر اللمس */
+        button, .order-card, .status-option, .map-control-btn, .close-modal, .alert-close, .notification-close-btn, .current-delivery-close {
+            cursor: pointer;
+        }
+        
+        /* تحسينات للوضع الأفقي */
+        @media (orientation: landscape) and (max-height: 500px) {
+            .orders-panel {
+                height: 80vh;
+            }
+            
+            .orders-list {
+                max-height: 50vh;
+            }
+            
+            .map-controls {
+                bottom: calc(80vh + 10px);
+            }
+            
+            .current-delivery {
+                max-width: 300px;
+            }
+        }
+        
+        /* دعم Notch و Safe Areas */
+        .safe-area-top {
+            padding-top: env(safe-area-inset-top);
+        }
+        
+        .safe-area-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        
+        /* تحسينات للأداء على الجوال */
+        .performance-optimized {
+            will-change: transform, opacity;
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+        }
+        
+        /* تأثيرات للتفاعل */
+        .ripple-effect {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .ripple-effect::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 5px;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.5);
+            opacity: 0;
+            border-radius: 100%;
+            transform: scale(1, 1) translate(-50%);
+            transform-origin: 50% 50%;
+        }
+        
+        .ripple-effect:focus:not(:active)::after {
+            animation: ripple 1s ease-out;
+        }
+        
+        @keyframes ripple {
+            0% {
+                transform: scale(0, 0);
+                opacity: 0.5;
+            }
+            20% {
+                transform: scale(25, 25);
+                opacity: 0.3;
+            }
+            100% {
+                opacity: 0;
+                transform: scale(40, 40);
+            }
         }
     </style>
 </head>
@@ -1292,7 +1523,7 @@
             <div class="current-delivery" id="current-delivery">
                 <div class="current-delivery-header">
                     <div class="current-delivery-title">التوصيل الحالي</div>
-                    <button class="close-modal" onclick="hideCurrentDelivery()">
+                    <button class="current-delivery-close" onclick="hideCurrentDelivery()">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -1311,7 +1542,7 @@
                     </div>
                     <div class="current-delivery-item">
                         <div class="current-delivery-label">العنوان</div>
-                        <div class="current-delivery-value" id="current-address" style="font-size: 0.9rem;">...</div>
+                        <div class="current-delivery-value" id="current-address" style="font-size: 0.85rem;">...</div>
                     </div>
                 </div>
                 <div class="progress-bar">
@@ -1320,7 +1551,7 @@
             </div>
         </div>
         
-        <!-- Orders Panel -->
+        <!-- Orders Panel - تم تحسينه للجوال -->
         <div class="orders-panel" id="orders-panel">
             <div class="panel-handle" onclick="toggleOrdersPanel()">
                 <div class="handle-bar"></div>
@@ -1472,11 +1703,18 @@
         let heartbeatInterval = null;
         let currentTab = 'active';
         let isConnected = false;
+        let panelIsDragging = false;
+        let panelStartY = 0;
+        let panelCurrentY = 0;
+        let panelHeight = window.innerHeight * 0.65;
         
         // Initialize the application
         async function init() {
             try {
                 console.log('🚀 Starting application initialization...');
+                
+                // Calculate panel height based on screen size
+                updatePanelHeight();
                 
                 // Initialize driver ID from localStorage or generate new
                 driverId = localStorage.getItem('driverId');
@@ -1553,6 +1791,25 @@
             }
         }
         
+        // Update panel height based on screen size
+        function updatePanelHeight() {
+            const isLandscape = window.innerWidth > window.innerHeight;
+            const isSmallScreen = window.innerHeight < 600;
+            
+            if (isLandscape && isSmallScreen) {
+                panelHeight = window.innerHeight * 0.8;
+            } else if (isLandscape) {
+                panelHeight = window.innerHeight * 0.7;
+            } else if (isSmallScreen) {
+                panelHeight = window.innerHeight * 0.6;
+            } else {
+                panelHeight = window.innerHeight * 0.65;
+            }
+            
+            // Update panel height in CSS
+            document.getElementById('orders-panel').style.height = `${panelHeight}px`;
+        }
+        
         // Test API connection
         async function testAPIConnection() {
             try {
@@ -1625,7 +1882,7 @@
             // Default location (Kuwait)
             const defaultLocation = [29.3759, 47.9774];
             
-            // Create map
+            // Create map with mobile optimizations
             map = L.map('map', {
                 zoomControl: false,
                 attributionControl: false,
@@ -1634,7 +1891,8 @@
                 scrollWheelZoom: false,
                 doubleClickZoom: true,
                 boxZoom: false,
-                keyboard: false
+                keyboard: false,
+                tap: false
             }).setView(defaultLocation, 13);
             
             // Add tile layer
@@ -1650,6 +1908,11 @@
             
             // Try to get current location
             locateMe();
+            
+            // Add map resize handler
+            setTimeout(() => {
+                map.invalidateSize();
+            }, 100);
         }
         
         // Initialize notification sounds
@@ -1671,28 +1934,30 @@
             }
         }
         
-        // Initialize touch events for panel
+        // Initialize touch events for panel - محسّن للجوال
         function initTouchEvents() {
             const panel = document.getElementById('orders-panel');
-            let startY = 0;
-            let currentY = 0;
-            let isDragging = false;
+            const panelHandle = document.querySelector('.panel-handle');
             
-            panel.addEventListener('touchstart', (e) => {
-                if (e.target.closest('.panel-handle')) {
-                    startY = e.touches[0].clientY;
-                    currentY = startY;
-                    isDragging = true;
-                    panel.style.transition = 'none';
-                }
-            }, { passive: true });
-            
-            panel.addEventListener('touchmove', (e) => {
-                if (!isDragging) return;
+            // Handle touch start
+            panelHandle.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                panelIsDragging = true;
+                panelStartY = e.touches[0].clientY;
+                panelCurrentY = panelStartY;
+                panel.style.transition = 'none';
                 
-                currentY = e.touches[0].clientY;
-                const diff = startY - currentY;
-                const panelHeight = window.innerHeight * 0.6;
+                // Add active class for visual feedback
+                panelHandle.classList.add('active');
+            }, { passive: false });
+            
+            // Handle touch move
+            document.addEventListener('touchmove', (e) => {
+                if (!panelIsDragging) return;
+                
+                e.preventDefault();
+                panelCurrentY = e.touches[0].clientY;
+                const diff = panelStartY - panelCurrentY;
                 
                 if (diff > 0) {
                     // Swiping up - expand
@@ -1700,29 +1965,39 @@
                     panel.style.transform = `translateY(${translateY}px)`;
                 } else {
                     // Swiping down - collapse
-                    const translateY = Math.min(panelHeight - 60, -diff);
-                    panel.style.transform = `translateY(calc(100% - 60px + ${translateY}px))`;
+                    const translateY = Math.min(panelHeight - 50, -diff);
+                    panel.style.transform = `translateY(calc(100% - 50px + ${translateY}px))`;
                 }
-            }, { passive: true });
+            }, { passive: false });
             
-            panel.addEventListener('touchend', () => {
-                if (!isDragging) return;
+            // Handle touch end
+            document.addEventListener('touchend', () => {
+                if (!panelIsDragging) return;
                 
-                isDragging = false;
-                panel.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+                panelIsDragging = false;
+                panel.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                panelHandle.classList.remove('active');
                 
-                const panelHeight = window.innerHeight * 0.6;
                 const currentTransform = panel.style.transform;
                 const currentTranslate = parseInt(currentTransform.match(/translateY\(([^)]+)\)/)[1]) || 0;
                 
                 if (currentTranslate < panelHeight / 2) {
                     // Expand
                     panel.classList.add('expanded');
+                    panel.style.transform = `translateY(0)`;
                 } else {
                     // Collapse
                     panel.classList.remove('expanded');
+                    panel.style.transform = `translateY(calc(100% - 50px))`;
                 }
-            }, { passive: true });
+            });
+            
+            // Add click handler for panel handle
+            panelHandle.addEventListener('click', (e) => {
+                if (!panelIsDragging) {
+                    toggleOrdersPanel();
+                }
+            });
             
             console.log('✅ Touch events initialized');
         }
@@ -2050,7 +2325,7 @@
                 </div>
                 <div class="notification-actions">
                     <button onclick="showAllOrdersOnMap()">عرض على الخريطة</button>
-                    <button onclick="switchOrdersTab('active'); document.getElementById('orders-panel').classList.add('expanded')">عرض الطلبات</button>
+                    <button onclick="switchOrdersTab('active'); expandOrdersPanel()">عرض الطلبات</button>
                 </div>
             `;
             
@@ -2343,7 +2618,7 @@
                 }
                 
                 // Expand panel on mobile
-                document.getElementById('orders-panel').classList.add('expanded');
+                expandOrdersPanel();
             }
         }
         
@@ -2453,7 +2728,7 @@
                     </div>
                     <div style="margin-top: 15px; padding: 10px; background: var(--card-light); border-radius: 8px; text-align: center;">
                         <div style="font-weight: 700; color: var(--text-gray)">الإجمالي:</div>
-                        <div style="font-size: 1.5rem; font-weight: 900; color: var(--primary); margin-top: 5px;">
+                        <div style="font-size: 1.3rem; font-weight: 900; color: var(--primary); margin-top: 5px;">
                             ${order.total || '0.000'} د.ك
                         </div>
                     </div>
@@ -2907,35 +3182,35 @@
                     
                     const markerIcon = L.divIcon({
                         html: `
-                            <div style="background: ${iconColor}; width: 35px; height: 35px; border-radius: 50%; 
+                            <div style="background: ${iconColor}; width: 32px; height: 32px; border-radius: 50%; 
                                          display: flex; align-items: center; justify-content: center; 
                                          color: white; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">
-                                <i class="${icon}" style="font-size: 16px;"></i>
+                                <i class="${icon}" style="font-size: 14px;"></i>
                             </div>
-                            <div style="background: white; color: #000; padding: 4px 8px; border-radius: 8px; 
-                                         margin-top: 4px; font-weight: bold; font-size: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); white-space: nowrap;">
+                            <div style="background: white; color: #000; padding: 3px 6px; border-radius: 6px; 
+                                         margin-top: 3px; font-weight: bold; font-size: 11px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); white-space: nowrap;">
                                 #${order.id}
                             </div>
                         `,
                         className: 'custom-marker',
-                        iconSize: [35, 35],
-                        iconAnchor: [17.5, 35],
-                        popupAnchor: [0, -35]
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 32],
+                        popupAnchor: [0, -32]
                     });
                     
                     const marker = L.marker([order.locationLat, order.locationLng], { icon: markerIcon })
                         .addTo(map)
                         .bindPopup(`
-                            <div style="text-align: right; direction: rtl; font-family: Cairo; min-width: 180px; font-size: 14px;">
-                                <h3 style="margin: 0 0 8px 0; color: #ff6600; font-size: 16px;">طلب #${order.id}</h3>
-                                <p style="margin: 4px 0;"><strong>العميل:</strong> ${order.customerName || 'عميل'}</p>
-                                <p style="margin: 4px 0;"><strong>الحالة:</strong> ${order.status === 'Ready' ? 'جاهز للتسليم' : 
+                            <div style="text-align: right; direction: rtl; font-family: Cairo; min-width: 160px; font-size: 13px;">
+                                <h3 style="margin: 0 0 6px 0; color: #ff6600; font-size: 15px;">طلب #${order.id}</h3>
+                                <p style="margin: 3px 0;"><strong>العميل:</strong> ${order.customerName || 'عميل'}</p>
+                                <p style="margin: 3px 0;"><strong>الحالة:</strong> ${order.status === 'Ready' ? 'جاهز للتسليم' : 
                                                              order.status === 'Picked' ? 'قيد التوصيل' : 
                                                              order.status === 'Assigned' ? 'مخصص لك' : 'قيد التحضير'}</p>
-                                <p style="margin: 4px 0;"><strong>العنوان:</strong> ${order.addressDetails || 'غير محدد'}</p>
+                                <p style="margin: 3px 0;"><strong>العنوان:</strong> ${order.addressDetails || 'غير محدد'}</p>
                                 <button onclick="showOrderDetails(${order.id}); closeOrderModal();" 
-                                        style="background: #ff6600; color: white; border: none; padding: 6px 12px; 
-                                               border-radius: 5px; cursor: pointer; width: 100%; margin-top: 8px; font-family: Cairo; font-size: 14px;">
+                                        style="background: #ff6600; color: white; border: none; padding: 5px 10px; 
+                                               border-radius: 4px; cursor: pointer; width: 100%; margin-top: 6px; font-family: Cairo; font-size: 13px;">
                                     عرض التفاصيل
                                 </button>
                             </div>
@@ -2949,7 +3224,7 @@
         // Show order on map
         function showOrderOnMap(order) {
             if (order.locationLat && order.locationLng) {
-                map.setView([order.locationLat, order.locationLng], 15);
+                map.setView([order.locationLat, order.locationLng], 16);
             }
         }
         
@@ -2979,7 +3254,7 @@
             });
             
             if (hasValidLocation) {
-                map.fitBounds(bounds, { padding: [30, 30] });
+                map.fitBounds(bounds, { padding: [20, 20] });
             } else {
                 Swal.fire({
                     icon: 'warning',
@@ -3138,16 +3413,16 @@
                         } else {
                             const driverIcon = L.divIcon({
                                 html: `
-                                    <div style="background: #ff6600; width: 45px; height: 45px; border-radius: 50%; 
+                                    <div style="background: #ff6600; width: 40px; height: 40px; border-radius: 50%; 
                                                  display: flex; align-items: center; justify-content: center; 
                                                  color: white; border: 3px solid white; box-shadow: 0 3px 10px rgba(0,0,0,0.3);
                                                  animation: pulse 2s infinite;">
-                                        <i class="fas fa-motorcycle" style="font-size: 20px;"></i>
+                                        <i class="fas fa-motorcycle" style="font-size: 18px;"></i>
                                     </div>
                                 `,
                                 className: 'driver-marker',
-                                iconSize: [45, 45],
-                                iconAnchor: [22.5, 45]
+                                iconSize: [40, 40],
+                                iconAnchor: [20, 40]
                             });
                             
                             driverMarker = L.marker([lat, lng], { icon: driverIcon })
@@ -3156,7 +3431,7 @@
                         }
                         
                         // Center map on location
-                        map.setView([lat, lng], 15);
+                        map.setView([lat, lng], 16);
                         
                         // Update location on server
                         updateDriverLocation();
@@ -3207,9 +3482,22 @@
             }
         }
         
+        // Panel control functions
         function toggleOrdersPanel() {
             const panel = document.getElementById('orders-panel');
             panel.classList.toggle('expanded');
+        }
+        
+        function expandOrdersPanel() {
+            const panel = document.getElementById('orders-panel');
+            panel.classList.add('expanded');
+            panel.style.transform = 'translateY(0)';
+        }
+        
+        function collapseOrdersPanel() {
+            const panel = document.getElementById('orders-panel');
+            panel.classList.remove('expanded');
+            panel.style.transform = `translateY(calc(100% - 50px))`;
         }
         
         function closeOrderModal() {
@@ -3256,6 +3544,25 @@
             isConnected = false;
         });
         
+        // Handle resize events
+        window.addEventListener('resize', () => {
+            // Update panel height
+            updatePanelHeight();
+            
+            // Update map size
+            setTimeout(() => {
+                map.invalidateSize();
+            }, 300);
+        });
+        
+        // Handle orientation change
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                updatePanelHeight();
+                map.invalidateSize();
+            }, 300);
+        });
+        
         // Handle beforeunload
         window.addEventListener('beforeunload', () => {
             console.log('Page unloading, cleaning up...');
@@ -3279,10 +3586,17 @@
         
         // Prevent pull-to-refresh on mobile
         document.addEventListener('touchmove', function(e) {
-            if (e.target.closest('.orders-list') || e.target.closest('.order-modal-content')) {
+            if (panelIsDragging || 
+                e.target.closest('.orders-list') || 
+                e.target.closest('.order-modal-content') ||
+                e.target.closest('.status-modal-content')) {
                 return;
             }
-            e.preventDefault();
+            
+            // Prevent default only if we're at the top of the page
+            if (window.scrollY === 0) {
+                e.preventDefault();
+            }
         }, { passive: false });
         
         // Handle back button on mobile
@@ -3298,6 +3612,23 @@
         
         // Push initial state
         history.pushState(null, null, window.location.pathname);
+        
+        // Add vibration feedback for mobile (if supported)
+        function vibrateFeedback() {
+            if (navigator.vibrate) {
+                navigator.vibrate(50);
+            }
+        }
+        
+        // Add vibration to button clicks
+        document.addEventListener('click', function(e) {
+            if (e.target.tagName === 'BUTTON' || 
+                e.target.closest('button') || 
+                e.target.classList.contains('order-card') ||
+                e.target.closest('.order-card')) {
+                vibrateFeedback();
+            }
+        });
     </script>
 </body>
 </html>
