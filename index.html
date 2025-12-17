@@ -43,6 +43,9 @@
             --order-status-picked: #9c27b0;
             --order-status-delivered: #4CAF50;
             --order-status-cancelled: #ff4444;
+            
+            --sheet-handle-height: 80px;
+            --sheet-expanded-height: 55vh; /* ارتفاع الشريط المفتوح - 55% من الشاشة */
         }
         
         * {
@@ -62,6 +65,7 @@
             right: 0;
             bottom: 0;
             -webkit-text-size-adjust: 100%;
+            touch-action: none;
         }
         
         body {
@@ -209,46 +213,58 @@
             position: relative;
             background: #2a2a2a;
             z-index: 1;
+            transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
         #map {
             width: 100%;
             height: 100%;
+            transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
-        /* شريط الطلبات الجديد - مصمم خصيصاً للهواتف */
+        /* شريط الطلبات الجديد - تصميم محسّن للهواتف */
         .orders-sheet {
             position: fixed;
             left: 0;
             right: 0;
             bottom: 0;
-            height: 85vh;
-            max-height: 85vh;
+            height: var(--sheet-expanded-height);
             background: var(--darker);
             border-radius: 25px 25px 0 0;
             z-index: 900;
             box-shadow: 0 -10px 40px rgba(0,0,0,0.8);
-            transform: translateY(calc(100% - 80px));
-            transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+            transform: translateY(calc(100% - var(--sheet-handle-height)));
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             flex-direction: column;
             touch-action: pan-y;
             padding-bottom: env(safe-area-inset-bottom);
+            overflow: hidden;
         }
         
         .orders-sheet.expanded {
             transform: translateY(0);
+            height: var(--sheet-expanded-height);
+        }
+        
+        .orders-sheet.collapsed {
+            transform: translateY(calc(100% - var(--sheet-handle-height)));
+            height: var(--sheet-expanded-height);
         }
         
         /* شريط السحب العلوي */
         .drag-handle-container {
             width: 100%;
-            padding: 15px 0 10px;
+            padding: 20px 0 12px;
             display: flex;
             justify-content: center;
             align-items: center;
             position: relative;
             touch-action: none;
+            cursor: pointer;
+            flex-shrink: 0;
+            z-index: 10;
+            background: var(--darker);
         }
         
         .drag-handle {
@@ -264,27 +280,15 @@
             transform: scaleX(1.2);
         }
         
-        /* علامة السحب للإشارة */
-        .drag-indicator {
-            position: absolute;
-            top: 8px;
-            width: 100%;
-            height: 30px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            opacity: 0.7;
-        }
-        
         /* الرأس الثابت */
         .sheet-header {
             padding: 0 15px 15px;
             background: var(--darker);
-            border-bottom: 1px solid var(--border);
             position: sticky;
             top: 0;
             z-index: 10;
             flex-shrink: 0;
+            border-bottom: 1px solid var(--border);
         }
         
         .sheet-title {
@@ -612,12 +616,17 @@
         /* أزرار التحكم في الخريطة */
         .map-controls {
             position: absolute;
-            bottom: 100px;
+            bottom: 20px;
             right: 15px;
             z-index: 1000;
             display: flex;
             flex-direction: column;
             gap: 12px;
+            transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .orders-sheet.expanded ~ .map-container .map-controls {
+            bottom: calc(var(--sheet-expanded-height) + 20px);
         }
         
         .map-control-btn {
@@ -725,27 +734,20 @@
         /* تلميح السحب */
         .drag-hint {
             position: absolute;
-            top: 5px;
+            top: 8px;
             left: 0;
             right: 0;
             text-align: center;
             color: var(--text-gray);
             font-size: 0.8rem;
             opacity: 0.6;
-            animation: fadeInOut 2s infinite;
-        }
-        
-        @keyframes fadeInOut {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 0.7; }
         }
         
         /* Responsive adjustments */
         @media (max-width: 480px) {
-            .orders-sheet {
-                height: 90vh;
-                max-height: 90vh;
-                transform: translateY(calc(100% - 70px));
+            :root {
+                --sheet-expanded-height: 60vh;
+                --sheet-handle-height: 70px;
             }
             
             .drag-handle {
@@ -785,11 +787,6 @@
                 font-size: 1.2rem;
             }
             
-            .map-controls {
-                bottom: 90px;
-                right: 12px;
-            }
-            
             .map-control-btn {
                 width: 45px;
                 height: 45px;
@@ -798,8 +795,9 @@
         }
         
         @media (max-width: 380px) {
-            .orders-sheet {
-                transform: translateY(calc(100% - 60px));
+            :root {
+                --sheet-expanded-height: 65vh;
+                --sheet-handle-height: 60px;
             }
             
             .sheet-title h2 {
@@ -815,6 +813,102 @@
                 padding: 12px;
                 font-size: 0.9rem;
             }
+        }
+        
+        /* تحسينات للشاشات الطويلة */
+        @media (min-height: 800px) {
+            :root {
+                --sheet-expanded-height: 50vh;
+            }
+        }
+        
+        /* تأثيرات لحظة السحب */
+        .drag-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: transparent;
+            z-index: 899;
+            display: none;
+        }
+        
+        .orders-sheet.dragging {
+            transition: none;
+            box-shadow: 0 -20px 50px rgba(0,0,0,0.9);
+        }
+        
+        .orders-sheet.dragging .drag-handle {
+            background: var(--primary);
+            transform: scaleX(1.1);
+        }
+        
+        /* تأثيرات جديدة للخريطة عند السحب */
+        .map-container.sheet-expanded {
+            filter: brightness(0.95);
+        }
+        
+        /* تعديلات للوضع الليلي */
+        .night-mode {
+            filter: invert(1) hue-rotate(180deg);
+        }
+        
+        /* تحسينات للأداء على الموبايل */
+        .order-item-card {
+            will-change: transform;
+            backface-visibility: hidden;
+        }
+        
+        /* زر السحب الموسع */
+        .drag-handle-area {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            z-index: 11;
+        }
+        
+        /* تصميم محسّن للشريط السفلي */
+        .orders-sheet::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 30px;
+            background: linear-gradient(to bottom, rgba(10,10,10,0.8), transparent);
+            pointer-events: none;
+            z-index: 1;
+            border-radius: 25px 25px 0 0;
+        }
+        
+        /* مؤشر السحب التفاعلي */
+        .drag-indicator {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--primary);
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        
+        .orders-sheet.dragging .drag-indicator {
+            opacity: 1;
+        }
+        
+        /* تأثير الاهتزاز عند فتح الشريط */
+        @keyframes sheetBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .orders-sheet.expanded {
+            animation: sheetBounce 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
         }
     </style>
 </head>
@@ -888,10 +982,13 @@
     </div>
     
     <!-- Orders Sheet - التصميم الجديد للهواتف -->
-    <div class="orders-sheet" id="orders-sheet">
+    <div class="orders-sheet collapsed" id="orders-sheet">
         <div class="drag-handle-container" id="drag-handle">
             <div class="drag-handle"></div>
-            <div class="drag-hint">اسحب لأعلى</div>
+            <div class="drag-hint">اسحب لأعلى لرؤية الطلبات</div>
+            <div class="drag-indicator">↕ اسحب للتحكم في الحجم</div>
+            <!-- منطقة سحب موسعة -->
+            <div class="drag-handle-area"></div>
         </div>
         
         <div class="sheet-header">
@@ -920,6 +1017,9 @@
             </div>
         </div>
     </div>
+    
+    <!-- Overlay أثناء السحب -->
+    <div class="drag-overlay" id="drag-overlay"></div>
     
     <!-- Status Modal -->
     <div class="status-modal" id="status-modal">
@@ -1052,8 +1152,12 @@
         let sheetStartY = 0;
         let sheetCurrentY = 0;
         let sheetHeight = 0;
-        let sheetCollapsedHeight = 80; // ارتفاع الشريط عند الإغلاق
+        const sheetCollapsedHeight = 80; // ارتفاع الشريط عند الإغلاق
         let isSheetExpanded = false;
+        let sheetExpandedHeight = window.innerHeight * 0.55; // 55% من الشاشة
+        let velocity = 0;
+        let lastY = 0;
+        let lastTime = 0;
         
         // Initialize the application
         async function init() {
@@ -1135,69 +1239,114 @@
             }
         }
         
-        // تهيئة نظام سحب الشريط
+        // تهيئة نظام سحب الشريط - محسّنة للاحترافية
         function initSheetDrag() {
             const sheet = document.getElementById('orders-sheet');
             const dragHandle = document.getElementById('drag-handle');
+            const dragOverlay = document.getElementById('drag-overlay');
             
             if (!sheet || !dragHandle) return;
             
             // حساب ارتفاع الشاشة
-            sheetHeight = window.innerHeight * 0.85;
+            sheetExpandedHeight = window.innerHeight * 0.55;
+            document.documentElement.style.setProperty('--sheet-expanded-height', `${sheetExpandedHeight}px`);
             
-            // إعداد السحب
-            dragHandle.addEventListener('touchstart', handleSheetTouchStart, { passive: true });
+            // إعداد السحب للمس
+            dragHandle.addEventListener('touchstart', handleSheetTouchStart, { passive: false });
             document.addEventListener('touchmove', handleSheetTouchMove, { passive: false });
             document.addEventListener('touchend', handleSheetTouchEnd, { passive: true });
             
             // النقر على المقبض للتبديل
             dragHandle.addEventListener('click', toggleSheet);
+            dragHandle.addEventListener('touchend', handleTap);
             
-            console.log('✅ Sheet drag initialized');
+            // تحديث عند تغيير حجم النافذة
+            window.addEventListener('resize', updateSheetHeight);
+            
+            console.log('✅ Sheet drag initialized with enhanced touch');
         }
         
-        // بدء السحب
+        // تحديث ارتفاع الشريط عند تغيير حجم النافذة
+        function updateSheetHeight() {
+            sheetExpandedHeight = window.innerHeight * 0.55;
+            document.documentElement.style.setProperty('--sheet-expanded-height', `${sheetExpandedHeight}px`);
+            
+            const sheet = document.getElementById('orders-sheet');
+            if (!isSheetExpanded) {
+                sheet.style.transform = `translateY(calc(100% - ${sheetCollapsedHeight}px))`;
+            }
+        }
+        
+        // بدء السحب - محسّن للسلاسة
         function handleSheetTouchStart(e) {
-            // التأكد من أن اللمس على المقبض أو داخل الشريط
             const target = e.target;
             const sheet = document.getElementById('orders-sheet');
-            const dragHandle = document.getElementById('drag-handle');
             
             if (!target.closest('#drag-handle') && !target.closest('.orders-scroll-container')) {
                 return;
             }
             
+            e.preventDefault();
+            e.stopPropagation();
+            
             isDraggingSheet = true;
             sheetStartY = e.touches[0].clientY;
             sheetCurrentY = sheetStartY;
+            lastY = sheetStartY;
+            lastTime = Date.now();
             
-            // حساب ارتفاع الشريط الحالي
             const rect = sheet.getBoundingClientRect();
             sheetHeight = rect.height;
+            
+            // إضافة تأثيرات السحب
+            sheet.classList.add('dragging');
+            document.getElementById('drag-overlay').style.display = 'block';
+            document.querySelector('.map-container').classList.add('sheet-expanded');
             
             // إيقاف الانتقالات أثناء السحب
             sheet.style.transition = 'none';
             
-            e.preventDefault();
+            // تعطيل التمرير في القائمة أثناء السحب
+            const ordersScroll = document.getElementById('orders-list');
+            ordersScroll.style.overflow = 'hidden';
         }
         
-        // أثناء السحب
+        // أثناء السحب - مع حساب السرعة
         function handleSheetTouchMove(e) {
             if (!isDraggingSheet) return;
+            
+            e.preventDefault();
+            e.stopPropagation();
             
             const sheet = document.getElementById('orders-sheet');
             const currentY = e.touches[0].clientY;
             const deltaY = sheetStartY - currentY;
+            const currentTime = Date.now();
             
-            // حساب الموضع الجديد
+            // حساب السرعة
+            const timeDiff = currentTime - lastTime;
+            if (timeDiff > 0) {
+                velocity = (lastY - currentY) / timeDiff;
+                lastY = currentY;
+                lastTime = currentTime;
+            }
+            
+            // حساب الموضع الجديد مع قيود
             const currentTranslate = getSheetTranslateY();
             const maxTranslate = 0; // أعلى موضع (مفتوح بالكامل)
             const minTranslate = sheetHeight - sheetCollapsedHeight; // أدنى موضع (مغلق)
             
             let newTranslate = currentTranslate + deltaY;
             
+            // تأثير المقاومة عند الحواف
+            if (newTranslate < maxTranslate - 50) {
+                newTranslate = maxTranslate - 50 + (newTranslate - (maxTranslate - 50)) * 0.3;
+            } else if (newTranslate > minTranslate + 50) {
+                newTranslate = minTranslate + 50 + (newTranslate - (minTranslate + 50)) * 0.3;
+            }
+            
             // الحد من الحركة ضمن النطاق المسموح
-            newTranslate = Math.max(maxTranslate, Math.min(minTranslate, newTranslate));
+            newTranslate = Math.max(maxTranslate - 100, Math.min(minTranslate + 100, newTranslate));
             
             // تطبيق التحويل
             sheet.style.transform = `translateY(${newTranslate}px)`;
@@ -1205,37 +1354,71 @@
             // تحديث القيم
             sheetStartY = currentY;
             
-            // منع التمرير في القائمة أثناء السحب
-            if (Math.abs(deltaY) > 5) {
-                e.preventDefault();
-            }
+            // تحديث خريطة التحكم
+            updateMapControlsPosition(newTranslate);
         }
         
-        // إنهاء السحب
+        // إنهاء السحب - مع حساب الزخم
         function handleSheetTouchEnd(e) {
             if (!isDraggingSheet) return;
             
             const sheet = document.getElementById('orders-sheet');
             const currentTranslate = getSheetTranslateY();
-            const threshold = (sheetHeight - sheetCollapsedHeight) / 3; // ثلث المسافة
+            const threshold = (sheetHeight - sheetCollapsedHeight) / 2; // منتصف المسافة
             
             // إعادة تفعيل الانتقالات
-            sheet.style.transition = 'transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1)';
+            sheet.style.transition = 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
             
-            // تحديد الاتجاه بناءً على السرعة والموضع
-            if (currentTranslate > threshold) {
-                // إغلاق الشريط
+            // إزالة تأثيرات السحب
+            sheet.classList.remove('dragging');
+            document.getElementById('drag-overlay').style.display = 'none';
+            document.querySelector('.map-container').classList.remove('sheet-expanded');
+            
+            // تمكين التمرير في القائمة
+            const ordersScroll = document.getElementById('orders-list');
+            ordersScroll.style.overflow = 'auto';
+            
+            // تحديد الاتجاه بناءً على الموضع والسرعة
+            const momentum = velocity * 100; // تأثير الزخم
+            
+            if ((currentTranslate > threshold && momentum < 1) || momentum < -0.5) {
+                // إغلاق الشريط (مع تأثير الزخم)
+                const closeDistance = sheetHeight - sheetCollapsedHeight - currentTranslate;
+                const closeTime = Math.min(0.35, Math.abs(closeDistance) / 1000);
+                
+                sheet.style.transition = `transform ${closeTime}s cubic-bezier(0.4, 0, 0.2, 1)`;
                 sheet.classList.remove('expanded');
+                sheet.classList.add('collapsed');
                 sheet.style.transform = `translateY(calc(100% - ${sheetCollapsedHeight}px))`;
                 isSheetExpanded = false;
             } else {
-                // فتح الشريط
+                // فتح الشريط (مع تأثير الزخم)
+                const openDistance = currentTranslate;
+                const openTime = Math.min(0.35, Math.abs(openDistance) / 1000);
+                
+                sheet.style.transition = `transform ${openTime}s cubic-bezier(0.4, 0, 0.2, 1)`;
                 sheet.classList.add('expanded');
+                sheet.classList.remove('collapsed');
                 sheet.style.transform = `translateY(0)`;
                 isSheetExpanded = true;
             }
             
             isDraggingSheet = false;
+            velocity = 0;
+        }
+        
+        // النقر على المقبض للتبديل
+        function handleTap(e) {
+            if (isDraggingSheet) return;
+            
+            const touch = e.changedTouches[0];
+            const startY = touch.clientY;
+            const endY = touch.clientY;
+            
+            // التأكد من أن الحركة كانت صغيرة (نقر وليس سحب)
+            if (Math.abs(startY - endY) < 10) {
+                toggleSheet();
+            }
         }
         
         // الحصول على قيمة translateY الحالية
@@ -1268,12 +1451,42 @@
             
             if (isExpanded) {
                 sheet.classList.remove('expanded');
+                sheet.classList.add('collapsed');
                 sheet.style.transform = `translateY(calc(100% - ${sheetCollapsedHeight}px))`;
                 isSheetExpanded = false;
+                
+                // تأثير اهتزاز عند الإغلاق
+                sheet.style.animation = 'sheetBounce 0.3s ease';
+                setTimeout(() => {
+                    sheet.style.animation = '';
+                }, 300);
             } else {
                 sheet.classList.add('expanded');
+                sheet.classList.remove('collapsed');
                 sheet.style.transform = `translateY(0)`;
                 isSheetExpanded = true;
+                
+                // تأثير اهتزاز عند الفتح
+                sheet.style.animation = 'sheetBounce 0.3s ease';
+                setTimeout(() => {
+                    sheet.style.animation = '';
+                }, 300);
+            }
+        }
+        
+        // تحديث موقع أزرار التحكم في الخريطة
+        function updateMapControlsPosition(translateY) {
+            const mapControls = document.querySelector('.map-controls');
+            if (!mapControls) return;
+            
+            const sheetHeight = window.innerHeight * 0.55;
+            const visibleMapHeight = window.innerHeight - (sheetHeight - translateY);
+            
+            if (visibleMapHeight < 100) {
+                mapControls.style.opacity = '0';
+            } else {
+                mapControls.style.opacity = '1';
+                mapControls.style.bottom = `${Math.max(20, visibleMapHeight - sheetHeight + 20)}px`;
             }
         }
         
@@ -1699,9 +1912,7 @@
             // Open the sheet automatically
             const sheet = document.getElementById('orders-sheet');
             if (!sheet.classList.contains('expanded')) {
-                sheet.classList.add('expanded');
-                sheet.style.transform = `translateY(0)`;
-                isSheetExpanded = true;
+                toggleSheet();
             }
         }
         
@@ -1902,9 +2113,7 @@
             // Open sheet if closed
             const sheet = document.getElementById('orders-sheet');
             if (!sheet.classList.contains('expanded')) {
-                sheet.classList.add('expanded');
-                sheet.style.transform = `translateY(0)`;
-                isSheetExpanded = true;
+                toggleSheet();
             }
         }
         
@@ -2651,12 +2860,7 @@
         // Handle resize
         window.addEventListener('resize', () => {
             // Update sheet height on resize
-            sheetHeight = window.innerHeight * 0.85;
-            
-            const sheet = document.getElementById('orders-sheet');
-            if (!isSheetExpanded) {
-                sheet.style.transform = `translateY(calc(100% - ${sheetCollapsedHeight}px))`;
-            }
+            updateSheetHeight();
         });
         
         // Handle beforeunload
@@ -2666,6 +2870,26 @@
             if (pollingInterval) clearInterval(pollingInterval);
             if (locationInterval) clearInterval(locationInterval);
             if (heartbeatInterval) clearInterval(heartbeatInterval);
+        });
+        
+        // تحسين الأداء على الموبايل
+        window.addEventListener('load', () => {
+            // تحسين الـ touch events
+            document.addEventListener('touchmove', (e) => {
+                if (e.target.closest('.orders-scroll-container') && !isDraggingSheet) {
+                    e.stopPropagation();
+                }
+            }, { passive: false });
+            
+            // تحسين تجربة التمرير
+            const ordersScroll = document.getElementById('orders-list');
+            if (ordersScroll) {
+                ordersScroll.addEventListener('scroll', () => {
+                    if (ordersScroll.scrollTop > 0 && !isDraggingSheet) {
+                        ordersScroll.style.overflow = 'auto';
+                    }
+                });
+            }
         });
     </script>
 </body>
