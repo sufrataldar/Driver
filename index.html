@@ -61,6 +61,7 @@
             left: 0;
             right: 0;
             bottom: 0;
+            -webkit-text-size-adjust: 100%;
         }
         
         body {
@@ -68,6 +69,9 @@
             background-color: var(--dark);
             color: var(--text);
             position: relative;
+            overscroll-behavior: none;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
         
         /* Header */
@@ -86,6 +90,7 @@
             align-items: center;
             padding: 0 15px;
             justify-content: space-between;
+            padding-top: env(safe-area-inset-top);
         }
         
         .logo-container {
@@ -158,7 +163,7 @@
         /* Connection Status */
         .connection-status {
             position: fixed;
-            top: 70px;
+            top: calc(60px + env(safe-area-inset-top));
             right: 15px;
             padding: 8px 15px;
             border-radius: 20px;
@@ -169,6 +174,7 @@
             align-items: center;
             gap: 8px;
             animation: slideDown 0.3s ease;
+            max-width: calc(100% - 30px);
         }
         
         .connection-status.connected {
@@ -194,6 +200,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            padding-top: env(safe-area-inset-top);
         }
         
         /* Map Container */
@@ -209,60 +216,87 @@
             height: 100%;
         }
         
-        /* Orders Panel */
-        .orders-panel {
+        /* شريط الطلبات الجديد - مصمم خصيصاً للهواتف */
+        .orders-sheet {
             position: fixed;
-            bottom: 0;
             left: 0;
             right: 0;
-            height: 60vh;
+            bottom: 0;
+            height: 85vh;
+            max-height: 85vh;
             background: var(--darker);
-            border-top: 1px solid var(--border);
-            border-radius: 20px 20px 0 0;
+            border-radius: 25px 25px 0 0;
             z-index: 900;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.8);
+            transform: translateY(calc(100% - 80px));
+            transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
             display: flex;
             flex-direction: column;
-            transform: translateY(calc(100% - 60px));
-            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
+            touch-action: pan-y;
+            padding-bottom: env(safe-area-inset-bottom);
         }
         
-        .orders-panel.expanded {
+        .orders-sheet.expanded {
             transform: translateY(0);
         }
         
-        .panel-handle {
+        /* شريط السحب العلوي */
+        .drag-handle-container {
             width: 100%;
-            padding: 15px;
+            padding: 15px 0 10px;
             display: flex;
             justify-content: center;
             align-items: center;
-            cursor: pointer;
+            position: relative;
+            touch-action: none;
         }
         
-        .handle-bar {
-            width: 40px;
-            height: 4px;
+        .drag-handle {
+            width: 50px;
+            height: 5px;
             background: var(--border);
-            border-radius: 2px;
+            border-radius: 3px;
+            transition: all 0.3s ease;
         }
         
-        .panel-header {
-            padding: 15px;
-            background: var(--card);
+        .drag-handle-container:active .drag-handle {
+            background: var(--primary);
+            transform: scaleX(1.2);
+        }
+        
+        /* علامة السحب للإشارة */
+        .drag-indicator {
+            position: absolute;
+            top: 8px;
+            width: 100%;
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0.7;
+        }
+        
+        /* الرأس الثابت */
+        .sheet-header {
+            padding: 0 15px 15px;
+            background: var(--darker);
             border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            flex-shrink: 0;
         }
         
-        .panel-title {
+        .sheet-title {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
         }
         
-        .panel-title h2 {
-            font-size: 1.3rem;
-            font-weight: 800;
+        .sheet-title h2 {
+            font-size: 1.4rem;
+            font-weight: 900;
             color: var(--text);
             margin: 0;
         }
@@ -270,124 +304,127 @@
         .orders-count {
             background: var(--primary);
             color: #000;
-            padding: 4px 12px;
+            padding: 6px 14px;
             border-radius: 20px;
-            font-weight: 800;
-            font-size: 0.9rem;
+            font-weight: 900;
+            font-size: 0.95rem;
+            min-width: 35px;
+            text-align: center;
         }
         
-        .tabs {
+        /* تبويبات الطلبات */
+        .orders-tabs {
             display: flex;
-            background: #2a2a2a;
-            border-radius: 10px;
+            background: var(--card);
+            border-radius: 12px;
             overflow: hidden;
+            border: 1px solid var(--border);
         }
         
-        .tab-btn {
+        .order-tab {
             flex: 1;
-            padding: 12px;
+            padding: 14px 10px;
             background: transparent;
             border: none;
             color: var(--text-gray);
             font-family: 'Cairo';
-            font-weight: 700;
+            font-weight: 800;
             cursor: pointer;
-            transition: 0.3s;
-            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+            position: relative;
         }
         
-        .tab-btn.active {
+        .order-tab.active {
             background: var(--primary);
             color: #000;
         }
         
-        .orders-list {
-            flex: 1;
-            overflow-y: auto;
-            padding: 15px;
-            -webkit-overflow-scrolling: touch;
+        .order-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 10%;
+            right: 10%;
+            height: 3px;
+            background: #000;
+            border-radius: 2px;
         }
         
-        .order-card {
-            background: var(--card);
-            border-radius: 12px;
-            margin-bottom: 12px;
-            overflow: hidden;
-            border: 1px solid var(--border);
-            cursor: pointer;
-            transition: all 0.3s ease;
+        /* قائمة الطلبات */
+        .orders-scroll-container {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            padding: 15px;
             position: relative;
         }
         
-        .order-card:hover, .order-card:active {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-            border-color: var(--primary);
+        /* شريط التمرير المخصص */
+        .orders-scroll-container::-webkit-scrollbar {
+            width: 4px;
         }
         
-        .order-card.active {
+        .orders-scroll-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .orders-scroll-container::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 2px;
+        }
+        
+        /* تصميم بطاقات الطلبات */
+        .order-item-card {
+            background: var(--card);
+            border-radius: 16px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .order-item-card:active {
+            transform: scale(0.98);
+            border-color: var(--primary);
+            box-shadow: 0 5px 15px rgba(255, 102, 0, 0.2);
+        }
+        
+        .order-item-card.active {
             border-color: var(--primary);
             box-shadow: 0 0 0 2px rgba(255, 102, 0, 0.3);
         }
         
-        .order-card.new {
-            border-left: 4px solid var(--order-status-new);
-        }
-        
-        .order-card.preparing {
-            border-left: 4px solid var(--order-status-preparing);
-        }
-        
-        .order-card.ready {
-            border-left: 4px solid var(--order-status-ready);
-        }
-        
-        .order-card.picked {
-            border-left: 4px solid var(--order-status-picked);
-        }
-        
-        .order-header {
-            padding: 12px;
+        .order-item-header {
+            padding: 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid var(--border);
             background: rgba(0,0,0,0.2);
+            border-bottom: 1px solid var(--border);
         }
         
-        .order-id {
-            font-size: 1.2rem;
+        .order-item-id {
+            font-size: 1.3rem;
             font-weight: 900;
             color: var(--primary);
         }
         
-        .order-status-badge {
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 0.75rem;
+        .order-status {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
             font-weight: 800;
+            min-width: 100px;
             text-align: center;
-            min-width: 85px;
-        }
-        
-        .status-new {
-            background: rgba(51, 181, 229, 0.2);
-            color: var(--order-status-new);
-            border: 1px solid var(--order-status-new);
-        }
-        
-        .status-preparing {
-            background: rgba(255, 187, 51, 0.2);
-            color: var(--order-status-preparing);
-            border: 1px solid var(--order-status-preparing);
-            animation: pulse 1.5s infinite;
         }
         
         .status-ready {
             background: rgba(0, 200, 81, 0.2);
             color: var(--order-status-ready);
             border: 1px solid var(--order-status-ready);
-            animation: pulse 1s infinite;
         }
         
         .status-picked {
@@ -396,90 +433,93 @@
             border: 1px solid var(--order-status-picked);
         }
         
-        .status-delivered {
-            background: rgba(76, 175, 80, 0.2);
-            color: var(--order-status-delivered);
-            border: 1px solid var(--order-status-delivered);
+        .order-item-body {
+            padding: 16px;
         }
         
-        .order-body {
-            padding: 12px;
-        }
-        
-        .order-customer {
+        .customer-info-row {
             display: flex;
             align-items: center;
-            gap: 10px;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
             border-bottom: 1px solid var(--border);
         }
         
         .customer-avatar {
-            width: 35px;
-            height: 35px;
-            background: var(--primary);
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             color: #000;
-            font-weight: 800;
-            font-size: 1rem;
+            font-weight: 900;
+            font-size: 1.2rem;
+            flex-shrink: 0;
         }
         
-        .customer-info {
+        .customer-details {
             flex: 1;
+            min-width: 0;
         }
         
         .customer-name {
-            font-weight: 700;
-            font-size: 1rem;
-            margin-bottom: 3px;
+            font-weight: 800;
+            font-size: 1.1rem;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         .customer-phone {
             color: var(--text-gray);
-            font-size: 0.8rem;
+            font-size: 0.9rem;
             direction: ltr;
             text-align: right;
+            font-family: monospace;
         }
         
-        .order-items {
+        .order-items-preview {
             margin-bottom: 12px;
         }
         
-        .order-items-title {
-            font-weight: 700;
-            margin-bottom: 6px;
+        .items-title {
+            font-weight: 800;
+            margin-bottom: 8px;
             color: var(--text-gray);
-            font-size: 0.85rem;
-        }
-        
-        .order-items-list {
-            list-style: none;
-            max-height: 60px;
-            overflow-y: auto;
-            padding-left: 12px;
-        }
-        
-        .order-item {
-            padding: 4px 0;
-            color: var(--text);
             font-size: 0.9rem;
             display: flex;
             align-items: center;
+            gap: 6px;
         }
         
-        .order-item::before {
+        .items-list {
+            list-style: none;
+            max-height: 70px;
+            overflow-y: auto;
+        }
+        
+        .item-preview {
+            padding: 6px 0;
+            color: var(--text);
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            padding-right: 10px;
+        }
+        
+        .item-preview::before {
             content: "•";
             color: var(--primary);
             margin-left: 6px;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
         }
         
-        .order-footer {
-            padding: 12px;
+        .order-item-footer {
+            padding: 16px;
             background: rgba(0,0,0,0.2);
             border-top: 1px solid var(--border);
             display: flex;
@@ -487,86 +527,102 @@
             align-items: center;
         }
         
-        .order-total {
+        .order-total-price {
             font-weight: 900;
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             color: var(--primary);
         }
         
         .order-time {
             color: var(--text-gray);
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 6px;
         }
         
-        .order-actions {
+        .order-actions-row {
             display: flex;
-            gap: 8px;
-            padding: 12px;
-            border-top: 1px solid var(--border);
-            background: rgba(0,0,0,0.1);
+            gap: 10px;
+            padding: 0 16px 16px;
         }
         
-        .action-btn {
+        .order-action-btn {
             flex: 1;
-            padding: 10px;
+            padding: 14px;
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
             font-family: 'Cairo';
-            font-weight: 800;
+            font-weight: 900;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
-            font-size: 0.9rem;
-            white-space: nowrap;
+            gap: 8px;
+            font-size: 0.95rem;
         }
         
-        .action-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        .order-action-btn:active {
+            transform: scale(0.95);
         }
         
-        .btn-pickup {
+        .action-pickup {
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             color: #000;
         }
         
-        .btn-pickup:hover:not(:disabled), .btn-pickup:active:not(:disabled) {
-            background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(255, 102, 0, 0.3);
-        }
-        
-        .btn-delivered {
+        .action-deliver {
             background: linear-gradient(135deg, var(--success) 0%, var(--success-dark) 100%);
             color: white;
         }
         
-        .btn-delivered:hover:not(:disabled), .btn-delivered:active:not(:disabled) {
-            background: linear-gradient(135deg, var(--success) 0%, #00b248 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 200, 81, 0.3);
+        .action-details {
+            background: linear-gradient(135deg, var(--info) 0%, #2980b9 100%);
+            color: white;
         }
         
-        /* Map Controls */
+        /* حالة فارغة */
+        .empty-orders-state {
+            text-align: center;
+            padding: 50px 20px;
+            color: var(--text-gray);
+        }
+        
+        .empty-icon {
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+        
+        .empty-title {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            color: var(--text);
+            font-weight: 800;
+        }
+        
+        .empty-message {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            max-width: 280px;
+            margin: 0 auto;
+        }
+        
+        /* أزرار التحكم في الخريطة */
         .map-controls {
             position: absolute;
-            bottom: calc(60vh + 15px);
+            bottom: 100px;
             right: 15px;
             z-index: 1000;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
         }
         
         .map-control-btn {
-            width: 45px;
-            height: 45px;
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
             background: var(--card);
             border: 2px solid var(--border);
@@ -575,19 +631,52 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.1rem;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            font-size: 1.2rem;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
         
-        .map-control-btn:hover, .map-control-btn:active {
+        .map-control-btn:active {
             background: var(--primary);
             color: #000;
             border-color: var(--primary);
-            transform: scale(1.1);
+            transform: scale(0.9);
         }
         
-        /* Status Modal */
+        /* Delivery Info */
+        .current-delivery {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            right: 15px;
+            background: rgba(18, 18, 18, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 16px;
+            border: 2px solid var(--primary);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 1000;
+            display: none;
+            animation: slideDown 0.3s ease;
+        }
+        
+        .current-delivery.active {
+            display: block;
+        }
+        
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        /* Modal and other styles remain similar */
         .status-modal {
             position: fixed;
             top: 0;
@@ -628,627 +717,104 @@
             }
         }
         
-        .status-modal-header {
-            text-align: center;
-            margin-bottom: 25px;
-        }
-        
-        .status-modal-header h3 {
-            font-size: 1.6rem;
-            font-weight: 900;
-            color: var(--primary);
-            margin-bottom: 8px;
-        }
-        
-        .status-modal-header p {
-            color: var(--text-gray);
-            font-size: 0.9rem;
-        }
-        
-        .status-options {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 25px;
-        }
-        
-        .status-option {
-            padding: 18px;
-            border-radius: 12px;
-            background: var(--card-light);
-            border: 2px solid transparent;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .status-option:hover, .status-option:active {
-            background: rgba(255, 102, 0, 0.1);
-            border-color: var(--primary);
-        }
-        
-        .status-option.active {
-            background: rgba(255, 102, 0, 0.2);
-            border-color: var(--primary);
-            box-shadow: 0 0 20px rgba(255, 102, 0, 0.2);
-        }
-        
-        .status-icon {
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.4rem;
-            color: #000;
-        }
-        
-        .status-icon.online {
-            background: var(--driver-status-ready);
-        }
-        
-        .status-icon.busy {
-            background: var(--driver-status-busy);
-        }
-        
-        .status-icon.offline {
-            background: var(--driver-status-offline);
-        }
-        
-        .status-info {
-            flex: 1;
-        }
-        
-        .status-title {
-            font-weight: 800;
-            font-size: 1.1rem;
-            margin-bottom: 4px;
-        }
-        
-        .status-description {
-            color: var(--text-gray);
-            font-size: 0.85rem;
-            line-height: 1.4;
-        }
-        
-        .status-actions {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .status-btn {
-            flex: 1;
-            padding: 14px;
-            border: none;
-            border-radius: 10px;
-            font-family: 'Cairo';
-            font-weight: 800;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 1rem;
-        }
-        
-        .status-btn.confirm {
-            background: linear-gradient(135deg, var(--success) 0%, var(--success-dark) 100%);
-            color: white;
-        }
-        
-        .status-btn.confirm:hover, .status-btn.confirm:active {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 200, 81, 0.3);
-        }
-        
-        .status-btn.cancel {
-            background: transparent;
-            border: 2px solid var(--border);
-            color: var(--text-gray);
-        }
-        
-        .status-btn.cancel:hover, .status-btn.cancel:active {
-            background: var(--card-light);
-            color: var(--text);
-        }
-        
-        /* Order Details Modal */
-        .order-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.98);
-            z-index: 2000;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            padding: 15px;
-        }
-        
-        .order-modal.active {
-            display: flex;
-        }
-        
-        .order-modal-content {
-            background: linear-gradient(135deg, var(--card) 0%, var(--darker) 100%);
-            border-radius: 20px;
-            width: 100%;
-            max-height: 85vh;
-            overflow-y: auto;
-            border: 2px solid var(--border);
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-            animation: modalSlideUp 0.3s ease;
-            -webkit-overflow-scrolling: touch;
-        }
-        
-        .order-modal-header {
-            padding: 18px;
-            border-bottom: 1px solid var(--border);
-            background: rgba(0,0,0,0.2);
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .order-modal-header h3 {
-            font-size: 1.4rem;
-            font-weight: 900;
-            color: var(--primary);
-            margin: 0;
-        }
-        
-        .close-modal {
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            background: var(--card-light);
-            border: none;
-            color: var(--text);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
-            transition: 0.3s;
-        }
-        
-        .close-modal:hover, .close-modal:active {
-            background: var(--danger);
-            color: white;
-            transform: rotate(90deg);
-        }
-        
-        .order-modal-body {
-            padding: 18px;
-        }
-        
-        .order-detail-section {
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid var(--border);
-        }
-        
-        .order-detail-section:last-child {
-            border-bottom: none;
-            margin-bottom: 0;
-        }
-        
-        .section-title {
-            font-weight: 800;
-            font-size: 1.1rem;
-            color: var(--primary);
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .detail-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-        }
-        
-        .detail-item {
-            background: var(--card-light);
-            padding: 12px;
-            border-radius: 10px;
-            border: 1px solid var(--border);
-        }
-        
-        .detail-label {
-            color: var(--text-gray);
-            font-size: 0.85rem;
-            margin-bottom: 4px;
-        }
-        
-        .detail-value {
-            font-weight: 700;
-            font-size: 1rem;
-        }
-        
-        .notes-container {
-            background: #332b00;
-            border: 1px solid #665500;
-            border-radius: 10px;
-            padding: 12px;
-            margin-top: 10px;
-        }
-        
-        .notes-title {
-            color: #ffdd44;
-            font-weight: 700;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        
-        .notes-content {
-            color: #ffdd44;
-            font-size: 0.9rem;
-            line-height: 1.6;
-        }
-        
-        /* Order Tracking */
-        .order-tracking {
-            position: relative;
-            padding: 15px 0;
-        }
-        
-        .tracking-timeline {
-            position: relative;
-            padding-right: 25px;
-        }
-        
-        .tracking-timeline::before {
-            content: '';
-            position: absolute;
-            right: 0;
-            top: 0;
-            bottom: 0;
-            width: 3px;
-            background: var(--border);
-            border-radius: 2px;
-        }
-        
-        .tracking-step {
-            position: relative;
-            margin-bottom: 25px;
-            padding-right: 35px;
-        }
-        
-        .tracking-step:last-child {
-            margin-bottom: 0;
-        }
-        
-        .tracking-step.active .tracking-icon {
-            background: var(--primary);
-            color: #000;
-            box-shadow: 0 0 0 5px rgba(255, 102, 0, 0.2);
-        }
-        
-        .tracking-step.completed .tracking-icon {
-            background: var(--success);
-            color: white;
-        }
-        
-        .tracking-step.pending .tracking-icon {
-            background: var(--card-light);
-            color: var(--text-gray);
-        }
-        
-        .tracking-icon {
-            position: absolute;
-            right: -10px;
-            top: 0;
-            width: 25px;
-            height: 25px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.85rem;
-            z-index: 2;
-            transition: all 0.3s ease;
-        }
-        
-        .tracking-info {
-            padding-top: 5px;
-        }
-        
-        .tracking-title {
-            font-weight: 800;
-            margin-bottom: 4px;
-            font-size: 1rem;
-        }
-        
-        .tracking-step.active .tracking-title {
-            color: var(--primary);
-        }
-        
-        .tracking-step.completed .tracking-title {
-            color: var(--success);
-        }
-        
-        .tracking-desc {
-            color: var(--text-gray);
-            font-size: 0.85rem;
-        }
-        
-        /* Alert Notification */
-        .alert-notification {
-            position: fixed;
-            bottom: 15px;
-            right: 15px;
-            left: 15px;
-            background: linear-gradient(135deg, var(--card) 0%, #1a2b3c 100%);
-            border-radius: 12px;
-            padding: 15px;
-            border-left: 5px solid var(--order-status-new);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            transform: translateY(100px);
-            opacity: 0;
-            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-            z-index: 2000;
-        }
-        
-        .alert-notification.show {
-            transform: translateY(0);
-            opacity: 1;
-        }
-        
-        .alert-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-        
-        .alert-title {
-            font-weight: 800;
-            font-size: 1.1rem;
-            color: var(--order-status-new);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .alert-close {
-            background: transparent;
-            border: none;
-            color: var(--text-gray);
-            cursor: pointer;
-            font-size: 1.1rem;
-            padding: 5px;
-        }
-        
-        .alert-body {
-            font-size: 0.9rem;
-            color: var(--text);
-            line-height: 1.5;
-        }
-        
-        .alert-order-id {
-            font-weight: 900;
-            color: var(--primary);
-            margin: 5px 0;
-        }
-        
-        /* Current Delivery Info */
-        .current-delivery {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            right: 15px;
-            background: rgba(18, 18, 18, 0.95);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-radius: 15px;
-            padding: 15px;
-            border: 2px solid var(--primary);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            z-index: 1000;
-            display: none;
-            animation: slideDown 0.3s ease;
-        }
-        
-        @keyframes slideDown {
-            from {
-                transform: translateY(-100px);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-        
-        .current-delivery.active {
-            display: block;
-        }
-        
-        .current-delivery-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-        
-        .current-delivery-title {
-            font-weight: 900;
-            font-size: 1.2rem;
-            color: var(--primary);
-        }
-        
-        .current-delivery-info {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-bottom: 12px;
-        }
-        
-        .current-delivery-item {
-            background: rgba(255, 102, 0, 0.1);
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid rgba(255, 102, 0, 0.2);
-        }
-        
-        .current-delivery-label {
-            font-size: 0.85rem;
-            color: var(--text-gray);
-            margin-bottom: 4px;
-        }
-        
-        .current-delivery-value {
-            font-weight: 700;
-            font-size: 1rem;
-        }
-        
-        /* Progress Bar */
-        .progress-bar {
-            height: 5px;
-            background: var(--border);
-            border-radius: 3px;
-            margin: 12px 0;
+        /* إخفاء العناصر عند السحب */
+        .no-scroll {
             overflow: hidden;
         }
         
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
-            border-radius: 3px;
-            width: 0%;
-            transition: width 0.5s ease;
-        }
-        
-        /* Empty State */
-        .empty-state {
+        /* تلميح السحب */
+        .drag-hint {
+            position: absolute;
+            top: 5px;
+            left: 0;
+            right: 0;
             text-align: center;
-            padding: 40px 15px;
             color: var(--text-gray);
+            font-size: 0.8rem;
+            opacity: 0.6;
+            animation: fadeInOut 2s infinite;
         }
         
-        .empty-icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
-            opacity: 0.3;
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.7; }
         }
         
-        .empty-title {
-            font-size: 1.2rem;
-            margin-bottom: 8px;
-            color: var(--text);
+        /* Responsive adjustments */
+        @media (max-width: 480px) {
+            .orders-sheet {
+                height: 90vh;
+                max-height: 90vh;
+                transform: translateY(calc(100% - 70px));
+            }
+            
+            .drag-handle {
+                width: 45px;
+                height: 4px;
+            }
+            
+            .sheet-title h2 {
+                font-size: 1.2rem;
+            }
+            
+            .orders-count {
+                padding: 5px 12px;
+                font-size: 0.9rem;
+            }
+            
+            .order-tab {
+                padding: 12px 8px;
+                font-size: 0.9rem;
+            }
+            
+            .order-item-card {
+                border-radius: 14px;
+            }
+            
+            .customer-avatar {
+                width: 40px;
+                height: 40px;
+                font-size: 1.1rem;
+            }
+            
+            .customer-name {
+                font-size: 1rem;
+            }
+            
+            .order-total-price {
+                font-size: 1.2rem;
+            }
+            
+            .map-controls {
+                bottom: 90px;
+                right: 12px;
+            }
+            
+            .map-control-btn {
+                width: 45px;
+                height: 45px;
+                font-size: 1.1rem;
+            }
         }
         
-        .empty-description {
-            font-size: 0.9rem;
-            line-height: 1.5;
-        }
-        
-        /* Loading */
-        .loading {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            color: var(--text-gray);
-            text-align: center;
-        }
-        
-        .spinner {
-            width: 45px;
-            height: 45px;
-            border: 3px solid rgba(255, 102, 0, 0.3);
-            border-radius: 50%;
-            border-top-color: var(--primary);
-            animation: spin 1s linear infinite;
-            margin-bottom: 15px;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        /* Driver Notification */
-        .driver-notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
-            border: 2px solid #00c851;
-            border-radius: 12px;
-            padding: 15px;
-            width: 300px;
-            max-width: 90%;
-            z-index: 2000;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            animation: slideInRight 0.3s ease;
-        }
-        
-        .notification-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #333;
-        }
-        
-        .notification-header h3 {
-            margin: 0;
-            color: #00c851;
-            font-size: 1.1rem;
-        }
-        
-        .notification-close-btn {
-            margin-right: auto;
-            background: none;
-            border: none;
-            color: #888;
-            cursor: pointer;
-            font-size: 1.2rem;
-        }
-        
-        .notification-body {
-            margin-bottom: 15px;
-            color: #ccc;
-            font-size: 0.9rem;
-            line-height: 1.5;
-        }
-        
-        .notification-actions {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .notification-actions button {
-            flex: 1;
-            padding: 8px 12px;
-            border: none;
-            border-radius: 6px;
-            background: #333;
-            color: white;
-            cursor: pointer;
-            font-family: 'Cairo';
-            font-size: 0.85rem;
-            transition: 0.3s;
-        }
-        
-        .notification-actions button:hover {
-            background: #444;
-        }
-        
-        @keyframes slideInRight {
-            from { transform: translateX(100px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+        @media (max-width: 380px) {
+            .orders-sheet {
+                transform: translateY(calc(100% - 60px));
+            }
+            
+            .sheet-title h2 {
+                font-size: 1.1rem;
+            }
+            
+            .order-tab {
+                font-size: 0.85rem;
+                padding: 10px 6px;
+            }
+            
+            .order-action-btn {
+                padding: 12px;
+                font-size: 0.9rem;
+            }
         }
     </style>
 </head>
@@ -1319,30 +885,38 @@
                 </div>
             </div>
         </div>
+    </div>
+    
+    <!-- Orders Sheet - التصميم الجديد للهواتف -->
+    <div class="orders-sheet" id="orders-sheet">
+        <div class="drag-handle-container" id="drag-handle">
+            <div class="drag-handle"></div>
+            <div class="drag-hint">اسحب لأعلى</div>
+        </div>
         
-        <!-- Orders Panel -->
-        <div class="orders-panel" id="orders-panel">
-            <div class="panel-handle" onclick="toggleOrdersPanel()">
-                <div class="handle-bar"></div>
-            </div>
-            <div class="panel-header">
-                <div class="panel-title">
-                    <h2>طلباتي</h2>
-                    <div class="orders-count" id="orders-count">0</div>
-                </div>
-                
-                <div class="tabs">
-                    <button class="tab-btn active" onclick="switchOrdersTab('active')">نشطة</button>
-                    <button class="tab-btn" onclick="switchOrdersTab('picked')">قيد التوصيل</button>
-                    <button class="tab-btn" onclick="switchOrdersTab('completed')">مكتملة</button>
-                </div>
+        <div class="sheet-header">
+            <div class="sheet-title">
+                <h2>طلبات التوصيل</h2>
+                <div class="orders-count" id="orders-count">0</div>
             </div>
             
-            <div class="orders-list" id="orders-list">
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <p>جاري تحميل الطلبات...</p>
-                </div>
+            <div class="orders-tabs">
+                <button class="order-tab active" onclick="switchOrdersTab('active')">
+                    <i class="fas fa-bell"></i> نشطة
+                </button>
+                <button class="order-tab" onclick="switchOrdersTab('picked')">
+                    <i class="fas fa-motorcycle"></i> قيد التوصيل
+                </button>
+                <button class="order-tab" onclick="switchOrdersTab('completed')">
+                    <i class="fas fa-check-circle"></i> مكتملة
+                </button>
+            </div>
+        </div>
+        
+        <div class="orders-scroll-container" id="orders-list">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>جاري تحميل الطلبات...</p>
             </div>
         </div>
     </div>
@@ -1473,6 +1047,14 @@
         let currentTab = 'active';
         let isConnected = false;
         
+        // متغيرات التحكم بالشريط السفلي
+        let isDraggingSheet = false;
+        let sheetStartY = 0;
+        let sheetCurrentY = 0;
+        let sheetHeight = 0;
+        let sheetCollapsedHeight = 80; // ارتفاع الشريط عند الإغلاق
+        let isSheetExpanded = false;
+        
         // Initialize the application
         async function init() {
             try {
@@ -1505,8 +1087,8 @@
                 // Initialize sounds
                 initSounds();
                 
-                // Initialize touch events for panel
-                initTouchEvents();
+                // Initialize sheet drag functionality
+                initSheetDrag();
                 
                 // Test connection first
                 updateConnectionStatus('جاري اختبار الاتصال...', 'disconnected');
@@ -1550,6 +1132,148 @@
                 console.error('❌ Error during initialization:', error);
                 updateConnectionStatus('خطأ في التهيئة', 'disconnected');
                 showError('خطأ في التهيئة', 'حدث خطأ أثناء تهيئة التطبيق');
+            }
+        }
+        
+        // تهيئة نظام سحب الشريط
+        function initSheetDrag() {
+            const sheet = document.getElementById('orders-sheet');
+            const dragHandle = document.getElementById('drag-handle');
+            
+            if (!sheet || !dragHandle) return;
+            
+            // حساب ارتفاع الشاشة
+            sheetHeight = window.innerHeight * 0.85;
+            
+            // إعداد السحب
+            dragHandle.addEventListener('touchstart', handleSheetTouchStart, { passive: true });
+            document.addEventListener('touchmove', handleSheetTouchMove, { passive: false });
+            document.addEventListener('touchend', handleSheetTouchEnd, { passive: true });
+            
+            // النقر على المقبض للتبديل
+            dragHandle.addEventListener('click', toggleSheet);
+            
+            console.log('✅ Sheet drag initialized');
+        }
+        
+        // بدء السحب
+        function handleSheetTouchStart(e) {
+            // التأكد من أن اللمس على المقبض أو داخل الشريط
+            const target = e.target;
+            const sheet = document.getElementById('orders-sheet');
+            const dragHandle = document.getElementById('drag-handle');
+            
+            if (!target.closest('#drag-handle') && !target.closest('.orders-scroll-container')) {
+                return;
+            }
+            
+            isDraggingSheet = true;
+            sheetStartY = e.touches[0].clientY;
+            sheetCurrentY = sheetStartY;
+            
+            // حساب ارتفاع الشريط الحالي
+            const rect = sheet.getBoundingClientRect();
+            sheetHeight = rect.height;
+            
+            // إيقاف الانتقالات أثناء السحب
+            sheet.style.transition = 'none';
+            
+            e.preventDefault();
+        }
+        
+        // أثناء السحب
+        function handleSheetTouchMove(e) {
+            if (!isDraggingSheet) return;
+            
+            const sheet = document.getElementById('orders-sheet');
+            const currentY = e.touches[0].clientY;
+            const deltaY = sheetStartY - currentY;
+            
+            // حساب الموضع الجديد
+            const currentTranslate = getSheetTranslateY();
+            const maxTranslate = 0; // أعلى موضع (مفتوح بالكامل)
+            const minTranslate = sheetHeight - sheetCollapsedHeight; // أدنى موضع (مغلق)
+            
+            let newTranslate = currentTranslate + deltaY;
+            
+            // الحد من الحركة ضمن النطاق المسموح
+            newTranslate = Math.max(maxTranslate, Math.min(minTranslate, newTranslate));
+            
+            // تطبيق التحويل
+            sheet.style.transform = `translateY(${newTranslate}px)`;
+            
+            // تحديث القيم
+            sheetStartY = currentY;
+            
+            // منع التمرير في القائمة أثناء السحب
+            if (Math.abs(deltaY) > 5) {
+                e.preventDefault();
+            }
+        }
+        
+        // إنهاء السحب
+        function handleSheetTouchEnd(e) {
+            if (!isDraggingSheet) return;
+            
+            const sheet = document.getElementById('orders-sheet');
+            const currentTranslate = getSheetTranslateY();
+            const threshold = (sheetHeight - sheetCollapsedHeight) / 3; // ثلث المسافة
+            
+            // إعادة تفعيل الانتقالات
+            sheet.style.transition = 'transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1)';
+            
+            // تحديد الاتجاه بناءً على السرعة والموضع
+            if (currentTranslate > threshold) {
+                // إغلاق الشريط
+                sheet.classList.remove('expanded');
+                sheet.style.transform = `translateY(calc(100% - ${sheetCollapsedHeight}px))`;
+                isSheetExpanded = false;
+            } else {
+                // فتح الشريط
+                sheet.classList.add('expanded');
+                sheet.style.transform = `translateY(0)`;
+                isSheetExpanded = true;
+            }
+            
+            isDraggingSheet = false;
+        }
+        
+        // الحصول على قيمة translateY الحالية
+        function getSheetTranslateY() {
+            const sheet = document.getElementById('orders-sheet');
+            const transform = sheet.style.transform;
+            
+            if (!transform || transform === 'none') {
+                return sheet.classList.contains('expanded') ? 0 : sheetHeight - sheetCollapsedHeight;
+            }
+            
+            const match = transform.match(/translateY\(([^)]+)\)/);
+            if (match) {
+                const value = match[1];
+                if (value.includes('calc')) {
+                    return sheetHeight - sheetCollapsedHeight;
+                }
+                return parseInt(value) || 0;
+            }
+            
+            return 0;
+        }
+        
+        // تبديل حالة الشريط
+        function toggleSheet() {
+            if (isDraggingSheet) return;
+            
+            const sheet = document.getElementById('orders-sheet');
+            const isExpanded = sheet.classList.contains('expanded');
+            
+            if (isExpanded) {
+                sheet.classList.remove('expanded');
+                sheet.style.transform = `translateY(calc(100% - ${sheetCollapsedHeight}px))`;
+                isSheetExpanded = false;
+            } else {
+                sheet.classList.add('expanded');
+                sheet.style.transform = `translateY(0)`;
+                isSheetExpanded = true;
             }
         }
         
@@ -1671,62 +1395,6 @@
             }
         }
         
-        // Initialize touch events for panel
-        function initTouchEvents() {
-            const panel = document.getElementById('orders-panel');
-            let startY = 0;
-            let currentY = 0;
-            let isDragging = false;
-            
-            panel.addEventListener('touchstart', (e) => {
-                if (e.target.closest('.panel-handle')) {
-                    startY = e.touches[0].clientY;
-                    currentY = startY;
-                    isDragging = true;
-                    panel.style.transition = 'none';
-                }
-            }, { passive: true });
-            
-            panel.addEventListener('touchmove', (e) => {
-                if (!isDragging) return;
-                
-                currentY = e.touches[0].clientY;
-                const diff = startY - currentY;
-                const panelHeight = window.innerHeight * 0.6;
-                
-                if (diff > 0) {
-                    // Swiping up - expand
-                    const translateY = Math.max(0, (panelHeight - diff));
-                    panel.style.transform = `translateY(${translateY}px)`;
-                } else {
-                    // Swiping down - collapse
-                    const translateY = Math.min(panelHeight - 60, -diff);
-                    panel.style.transform = `translateY(calc(100% - 60px + ${translateY}px))`;
-                }
-            }, { passive: true });
-            
-            panel.addEventListener('touchend', () => {
-                if (!isDragging) return;
-                
-                isDragging = false;
-                panel.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
-                
-                const panelHeight = window.innerHeight * 0.6;
-                const currentTransform = panel.style.transform;
-                const currentTranslate = parseInt(currentTransform.match(/translateY\(([^)]+)\)/)[1]) || 0;
-                
-                if (currentTranslate < panelHeight / 2) {
-                    // Expand
-                    panel.classList.add('expanded');
-                } else {
-                    // Collapse
-                    panel.classList.remove('expanded');
-                }
-            }, { passive: true });
-            
-            console.log('✅ Touch events initialized');
-        }
-        
         // Show error message
         function showError(title, message) {
             console.error(`Error: ${title} - ${message}`);
@@ -1835,7 +1503,7 @@
                 if (driverStatus !== 'offline' && isConnected) {
                     sendHeartbeat();
                 }
-            }, 30000); // Send heartbeat every 30 seconds
+            }, 30000);
             
             console.log('✅ Heartbeat interval started');
         }
@@ -1850,7 +1518,7 @@
                 if (driverStatus !== 'offline' && isConnected) {
                     loadOrders();
                 }
-            }, 8000); // Poll every 8 seconds
+            }, 8000);
             
             console.log('✅ Polling interval started');
         }
@@ -1865,12 +1533,12 @@
                 if (driverStatus !== 'offline' && currentLocation && isConnected) {
                     updateDriverLocation();
                 }
-            }, 15000); // Update location every 15 seconds
+            }, 15000);
             
             console.log('✅ Location updates started');
         }
         
-        // Update driver location on server - MODIFIED: Don't change driver status
+        // Update driver location on server
         async function updateDriverLocation() {
             if (!currentLocation) {
                 console.log('No location available to update');
@@ -1948,11 +1616,6 @@
                         if (readyOrders.length > 0 && driverStatus === 'online') {
                             showAvailableOrdersNotification(readyOrders);
                         }
-                    }
-                    
-                    // Check for notifications
-                    if (data.notifications && data.notifications.length > 0) {
-                        showDriverNotifications(data.notifications);
                     }
                     
                 } else if (data.shouldReconnect || data.message === 'رمز الاتصال غير صالح') {
@@ -2033,101 +1696,13 @@
                 console.log('Could not play sound:', e);
             }
             
-            // Create notification element
-            const notification = document.createElement('div');
-            notification.className = 'driver-notification';
-            notification.innerHTML = `
-                <div class="notification-header">
-                    <i class="fas fa-bell" style="color: #00c851;"></i>
-                    <h3>طلبات جاهزة للتسليم</h3>
-                    <button class="notification-close-btn" onclick="this.parentElement.parentElement.remove()">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <div class="notification-body">
-                    <p>يوجد ${orders.length} طلب جاهز للتسليم</p>
-                    <p>الطلب #${newestOrder.id} - ${newestOrder.customerName || 'عميل'}</p>
-                </div>
-                <div class="notification-actions">
-                    <button onclick="showAllOrdersOnMap()">عرض على الخريطة</button>
-                    <button onclick="switchOrdersTab('active'); document.getElementById('orders-panel').classList.add('expanded')">عرض الطلبات</button>
-                </div>
-            `;
-            
-            document.body.appendChild(notification);
-            
-            // Auto-remove after 10 seconds
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.remove();
-                }
-            }, 10000);
-        }
-        
-        // Show driver notifications
-        function showDriverNotifications(notifications) {
-            notifications.forEach(notification => {
-                if (!notification.seen) {
-                    showNotificationMessage(notification);
-                }
-            });
-        }
-        
-        // Show notification message
-        function showNotificationMessage(notification) {
-            let title = '';
-            let icon = 'info';
-            let color = '#33b5e5';
-            
-            switch(notification.type) {
-                case 'order_assigned':
-                    title = '📦 طلب مخصص لك';
-                    icon = 'user-check';
-                    color = '#ffbb33';
-                    break;
-                case 'order_ready':
-                    title = '🚀 الطلب جاهز';
-                    icon = 'check-circle';
-                    color = '#00c851';
-                    break;
-                case 'order_picked':
-                    title = '✅ تم استلام الطلب';
-                    icon = 'shopping-bag';
-                    color = '#9c27b0';
-                    break;
-                case 'order_delivered':
-                    title = '🎉 تم التوصيل';
-                    icon = 'home';
-                    color = '#4CAF50';
-                    break;
-                default:
-                    title = '🔔 إشعار جديد';
-                    icon = 'bell';
+            // Open the sheet automatically
+            const sheet = document.getElementById('orders-sheet');
+            if (!sheet.classList.contains('expanded')) {
+                sheet.classList.add('expanded');
+                sheet.style.transform = `translateY(0)`;
+                isSheetExpanded = true;
             }
-            
-            const notificationEl = document.createElement('div');
-            notificationEl.className = 'driver-notification';
-            notificationEl.innerHTML = `
-                <div class="notification-header">
-                    <i class="fas fa-${icon}" style="color: ${color};"></i>
-                    <h3>${title}</h3>
-                    <button class="notification-close-btn" onclick="this.parentElement.parentElement.remove()">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <div class="notification-body">
-                    <p>${notification.message || 'إشعار جديد'}</p>
-                </div>
-            `;
-            
-            document.body.appendChild(notificationEl);
-            
-            // Auto-remove after 8 seconds
-            setTimeout(() => {
-                if (notificationEl.parentNode) {
-                    notificationEl.remove();
-                }
-            }, 8000);
         }
         
         // Update orders count display
@@ -2169,33 +1744,33 @@
             if (orders.length === 0) {
                 let emptyMessage = '';
                 let emptyIcon = 'fas fa-clipboard-list';
+                let emptyDesc = '';
                 
                 switch(currentTab) {
                     case 'active':
-                        emptyMessage = 'لا توجد طلبات جاهزة للتسليم حالياً';
+                        emptyMessage = 'لا توجد طلبات جاهزة';
                         emptyIcon = 'fas fa-mug-hot';
+                        emptyDesc = 'ستظهر هنا الطلبات الجاهزة للتسليم';
                         break;
                     case 'picked':
-                        emptyMessage = 'لا توجد طلبات قيد التوصيل حالياً';
+                        emptyMessage = 'لا توجد طلبات قيد التوصيل';
                         emptyIcon = 'fas fa-motorcycle';
+                        emptyDesc = 'الطلبات التي تقوم بتوصيلها ستظهر هنا';
                         break;
                     case 'completed':
                         emptyMessage = 'لا توجد طلبات مكتملة';
                         emptyIcon = 'fas fa-check-circle';
+                        emptyDesc = 'الطلبات المكتملة ستظهر هنا';
                         break;
                 }
                 
                 ordersList.innerHTML = `
-                    <div class="empty-state">
+                    <div class="empty-orders-state">
                         <div class="empty-icon">
                             <i class="${emptyIcon}"></i>
                         </div>
                         <div class="empty-title">${emptyMessage}</div>
-                        <div class="empty-description">
-                            ${currentTab === 'active' ? 'سيظهر هنا الطلبات الجاهزة للتسليم' : 
-                              currentTab === 'picked' ? 'الطلبات التي تقوم بتوصيلها ستظهر هنا' :
-                              'الطلبات المكتملة ستظهر هنا'}
-                        </div>
+                        <div class="empty-message">${emptyDesc}</div>
                     </div>
                 `;
                 return;
@@ -2222,7 +1797,7 @@
                         statusText = 'جاهز للتسليم';
                         break;
                     case 'Assigned':
-                        statusClass = 'status-preparing';
+                        statusClass = 'status-ready';
                         statusText = 'مخصص لك';
                         break;
                     case 'Picked':
@@ -2243,63 +1818,66 @@
                 const customerName = order.customerName || 'عميل';
                 const customerInitial = customerName.charAt(0).toUpperCase();
                 
+                // Get first 2 items
+                const itemsPreview = order.items ? order.items.split(' + ').slice(0, 2).map(item => item.trim()).join(', ') : '';
+                
                 html += `
-                    <div class="order-card ${order.status.toLowerCase()} ${selectedOrder && selectedOrder.id === order.id ? 'active' : ''}" 
-                          onclick="selectOrder(${order.id})" data-order-id="${order.id}">
-                        <div class="order-header">
-                            <div class="order-id">#${order.id}</div>
-                            <div class="order-status-badge ${statusClass}">${statusText}</div>
+                    <div class="order-item-card" onclick="selectOrder(${order.id})" data-order-id="${order.id}">
+                        <div class="order-item-header">
+                            <div class="order-item-id">#${order.id}</div>
+                            <div class="order-status ${statusClass}">${statusText}</div>
                         </div>
                         
-                        <div class="order-body">
-                            <div class="order-customer">
+                        <div class="order-item-body">
+                            <div class="customer-info-row">
                                 <div class="customer-avatar">
                                     ${customerInitial}
                                 </div>
-                                <div class="customer-info">
+                                <div class="customer-details">
                                     <div class="customer-name">${customerName}</div>
                                     <div class="customer-phone">${order.phone || ''}</div>
                                 </div>
                             </div>
                             
-                            <div class="order-items">
-                                <div class="order-items-title">الأصناف (${itemsCount})</div>
-                                <ul class="order-items-list">
-                                    ${order.items ? order.items.split(' + ').slice(0, 2).map(item => 
-                                        `<li class="order-item">${item.trim()}</li>`
-                                    ).join('') : '<li class="order-item">لا توجد أصناف محددة</li>'}
-                                    ${itemsCount > 2 ? '<li class="order-item">...وغيرها</li>' : ''}
+                            <div class="order-items-preview">
+                                <div class="items-title">
+                                    <i class="fas fa-shopping-basket"></i>
+                                    الأصناف (${itemsCount})
+                                </div>
+                                <ul class="items-list">
+                                    ${order.items ? order.items.split(' + ').slice(0, 3).map(item => 
+                                        `<li class="item-preview">${item.trim()}</li>`
+                                    ).join('') : '<li class="item-preview">لا توجد أصناف محددة</li>'}
+                                    ${itemsCount > 3 ? '<li class="item-preview">...و ' + (itemsCount - 3) + ' أكثر</li>' : ''}
                                 </ul>
                             </div>
                         </div>
                         
-                        <div class="order-footer">
-                            <div class="order-total">${order.total || '0.000'} د.ك</div>
+                        <div class="order-item-footer">
+                            <div class="order-total-price">${order.total || '0.000'} د.ك</div>
                             <div class="order-time">
                                 <i class="far fa-clock"></i>
                                 ${timeString}
                             </div>
                         </div>
                         
-                        ${order.status === 'Ready' || order.status === 'Assigned' ? `
-                            <div class="order-actions">
-                                <button class="action-btn btn-pickup" onclick="event.stopPropagation(); pickOrder(${order.id})">
-                                    <i class="fas fa-shopping-bag"></i> استلام الطلب
+                        <div class="order-actions-row">
+                            ${order.status === 'Ready' || order.status === 'Assigned' ? `
+                                <button class="order-action-btn action-pickup" onclick="event.stopPropagation(); pickOrder(${order.id})">
+                                    <i class="fas fa-shopping-bag"></i> استلام
                                 </button>
-                                <button class="action-btn btn-delivered" onclick="event.stopPropagation(); showOrderDetails(${order.id})">
-                                    <i class="fas fa-info-circle"></i> التفاصيل
+                                <button class="order-action-btn action-details" onclick="event.stopPropagation(); showOrderDetails(${order.id})">
+                                    <i class="fas fa-info-circle"></i> تفاصيل
                                 </button>
-                            </div>
-                        ` : order.status === 'Picked' ? `
-                            <div class="order-actions">
-                                <button class="action-btn btn-delivered" onclick="event.stopPropagation(); markDelivered(${order.id})">
+                            ` : order.status === 'Picked' ? `
+                                <button class="order-action-btn action-deliver" onclick="event.stopPropagation(); markDelivered(${order.id})">
                                     <i class="fas fa-check-circle"></i> تم التوصيل
                                 </button>
-                                <button class="action-btn btn-pickup" onclick="event.stopPropagation(); showNavigation(${order.id})">
-                                    <i class="fas fa-directions"></i> التنقل
+                                <button class="order-action-btn action-details" onclick="event.stopPropagation(); showNavigation(${order.id})">
+                                    <i class="fas fa-directions"></i> تنقل
                                 </button>
-                            </div>
-                        ` : ''}
+                            ` : ''}
+                        </div>
                     </div>
                 `;
             });
@@ -2312,7 +1890,7 @@
             currentTab = tab;
             
             // Update active tab button
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.order-tab').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
             
             // Update orders count
@@ -2320,6 +1898,14 @@
             
             // Render orders list
             renderOrdersList();
+            
+            // Open sheet if closed
+            const sheet = document.getElementById('orders-sheet');
+            if (!sheet.classList.contains('expanded')) {
+                sheet.classList.add('expanded');
+                sheet.style.transform = `translateY(0)`;
+                isSheetExpanded = true;
+            }
         }
         
         // Select an order
@@ -2329,7 +1915,7 @@
                 selectedOrder = order;
                 
                 // Update active card
-                document.querySelectorAll('.order-card').forEach(card => {
+                document.querySelectorAll('.order-item-card').forEach(card => {
                     card.classList.remove('active');
                 });
                 event.currentTarget.classList.add('active');
@@ -2341,9 +1927,6 @@
                 if (order.status === 'Picked') {
                     showCurrentDelivery(order);
                 }
-                
-                // Expand panel on mobile
-                document.getElementById('orders-panel').classList.add('expanded');
             }
         }
         
@@ -2373,20 +1956,6 @@
                 });
             }
             
-            // Parse notes
-            let notesHtml = '';
-            if (order.notes && order.notes.trim()) {
-                notesHtml = `
-                    <div class="notes-container">
-                        <div class="notes-title">
-                            <i class="fas fa-sticky-note"></i>
-                            ملاحظات خاصة
-                        </div>
-                        <div class="notes-content">${order.notes.replace(/\n/g, '<br>')}</div>
-                    </div>
-                `;
-            }
-            
             // Get status steps
             const steps = getOrderTrackingSteps(order.status);
             
@@ -2410,10 +1979,6 @@
                             <div class="detail-label">وقت الطلب</div>
                             <div class="detail-value">${timeString}</div>
                         </div>
-                        <div class="detail-item">
-                            <div class="detail-label">نوع العميل</div>
-                            <div class="detail-value">${order.type || 'New CX'}</div>
-                        </div>
                     </div>
                 </div>
                 
@@ -2435,12 +2000,7 @@
                             <div class="detail-label">العنوان</div>
                             <div class="detail-value">${order.addressDetails || 'غير محدد'}</div>
                         </div>
-                        <div class="detail-item">
-                            <div class="detail-label">طريقة الدفع</div>
-                            <div class="detail-value">${order.paymentMethod === 'cash' ? 'نقداً' : order.paymentMethod || 'غير محدد'}</div>
-                        </div>
                     </div>
-                    ${notesHtml}
                 </div>
                 
                 <div class="order-detail-section">
@@ -2459,37 +2019,15 @@
                     </div>
                 </div>
                 
-                <div class="order-detail-section">
-                    <div class="section-title">
-                        <i class="fas fa-map-marker-alt"></i>
-                        تتبع الطلب
-                    </div>
-                    <div class="order-tracking">
-                        <div class="tracking-timeline">
-                            ${steps.map(step => `
-                                <div class="tracking-step ${step.status}">
-                                    <div class="tracking-icon">
-                                        <i class="${step.icon}"></i>
-                                    </div>
-                                    <div class="tracking-info">
-                                        <div class="tracking-title">${step.title}</div>
-                                        <div class="tracking-desc">${step.description}</div>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                </div>
-                
                 ${order.status === 'Picked' ? `
                     <div style="margin-top: 20px;">
-                        <button class="action-btn btn-delivered" style="width: 100%;" onclick="markDelivered(${order.id}); closeOrderModal();">
+                        <button class="order-action-btn action-deliver" style="width: 100%;" onclick="markDelivered(${order.id}); closeOrderModal();">
                             <i class="fas fa-check-circle"></i> تأكيد التوصيل
                         </button>
                     </div>
                 ` : order.status === 'Ready' || order.status === 'Assigned' ? `
                     <div style="margin-top: 20px;">
-                        <button class="action-btn btn-pickup" style="width: 100%;" onclick="pickOrder(${order.id}); closeOrderModal();">
+                        <button class="order-action-btn action-pickup" style="width: 100%;" onclick="pickOrder(${order.id}); closeOrderModal();">
                             <i class="fas fa-shopping-bag"></i> استلام الطلب
                         </button>
                     </div>
@@ -2593,11 +2131,6 @@
                             color: '#fff'
                         });
                         
-                        // لا تغيير حالة السائق تلقائياً - يبقى متاحاً
-                        // driverStatus = 'busy'; // إزالة هذا السطر
-                        // updateDriverStatusUI(); // إزالة هذا السطر
-                        // updateDriverStatusOnServer(); // إزالة هذا السطر
-                        
                         // Reload orders
                         loadOrders();
                         
@@ -2622,7 +2155,7 @@
             }
         }
         
-        // Mark order as delivered - MODIFIED: No automatic status change
+        // Mark order as delivered
         async function markDelivered(orderId) {
             try {
                 const result = await Swal.fire({
@@ -2679,11 +2212,6 @@
                             color: '#fff'
                         });
                         
-                        // لا تغيير حالة السائق تلقائياً - يبقى كما هو
-                        // driverStatus = 'online'; // إزالة هذا السطر
-                        // updateDriverStatusUI(); // إزالة هذا السطر
-                        // updateDriverStatusOnServer(); // إزالة هذا السطر
-                        
                         // Hide current delivery
                         hideCurrentDelivery();
                         
@@ -2708,41 +2236,6 @@
                     background: '#222',
                     color: '#fff'
                 });
-            }
-        }
-        
-        // Update driver status on server
-        async function updateDriverStatusOnServer() {
-            try {
-                const params = new URLSearchParams();
-                params.append('action', 'updateDriverStatus');
-                params.append('driverId', driverId);
-                params.append('status', driverStatus);
-                params.append('timestamp', Date.now());
-                
-                if (connectionToken) {
-                    params.append('connectionToken', connectionToken);
-                }
-                
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: params,
-                    mode: 'cors'
-                });
-                
-                if (!response.ok) {
-                    throw new Error('فشل تحديث الحالة');
-                }
-                
-                const data = await response.json();
-                
-                if (data.result === 'success') {
-                    console.log('✅ Driver status updated on server');
-                    localStorage.setItem('driverStatus', driverStatus);
-                }
-            } catch (error) {
-                console.error('❌ Error updating driver status:', error);
             }
         }
         
@@ -2793,17 +2286,7 @@
                 draggableWaypoints: false,
                 fitSelectedRoutes: true,
                 show: false,
-                language: 'ar',
-                instructions: {
-                    'ar': {
-                        'headTowards': 'توجه نحو',
-                        'continue': 'استمر',
-                        'turnAround': 'ادر حول',
-                        'turnLeft': 'انعطف يساراً',
-                        'turnRight': 'انعطف يميناً',
-                        'youHaveArrived': 'لقد وصلت'
-                    }
-                }
+                language: 'ar'
             }).addTo(map);
             
             // Listen for route found event
@@ -2846,30 +2329,6 @@
             
             document.getElementById('current-distance').textContent = `${distance} كم`;
             document.getElementById('current-eta').textContent = `${time} دقيقة`;
-            
-            // Calculate progress based on remaining distance
-            if (currentLocation && route.coordinates && route.coordinates.length > 0) {
-                const totalDistance = route.summary.totalDistance;
-                const remainingDistance = calculateDistanceToDestination(currentLocation, route.coordinates[route.coordinates.length - 1]);
-                const progress = Math.max(0, Math.min(100, 100 - (remainingDistance / totalDistance * 100)));
-                document.getElementById('delivery-progress').style.width = `${progress}%`;
-            }
-        }
-        
-        // Calculate distance between two points
-        function calculateDistanceToDestination(point1, point2) {
-            const R = 6371e3; // Earth's radius in meters
-            const φ1 = point1.lat * Math.PI/180;
-            const φ2 = point2.lat * Math.PI/180;
-            const Δφ = (point2.lat - point1.lat) * Math.PI/180;
-            const Δλ = (point2.lng - point1.lng) * Math.PI/180;
-            
-            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-                      Math.cos(φ1) * Math.cos(φ2) *
-                      Math.sin(Δλ/2) * Math.sin(Δλ/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            
-            return R * c;
         }
         
         // Hide current delivery
@@ -2897,9 +2356,6 @@
                     } else if (order.status === 'Ready') {
                         iconColor = '#00c851';
                         icon = 'fas fa-check';
-                    } else if (order.status === 'Assigned') {
-                        iconColor = '#ffbb33';
-                        icon = 'fas fa-user-clock';
                     } else {
                         iconColor = '#33b5e5';
                         icon = 'fas fa-clock';
@@ -2907,35 +2363,34 @@
                     
                     const markerIcon = L.divIcon({
                         html: `
-                            <div style="background: ${iconColor}; width: 35px; height: 35px; border-radius: 50%; 
+                            <div style="background: ${iconColor}; width: 40px; height: 40px; border-radius: 50%; 
                                          display: flex; align-items: center; justify-content: center; 
-                                         color: white; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">
-                                <i class="${icon}" style="font-size: 16px;"></i>
+                                         color: white; border: 3px solid white; box-shadow: 0 3px 10px rgba(0,0,0,0.3);">
+                                <i class="${icon}" style="font-size: 18px;"></i>
                             </div>
-                            <div style="background: white; color: #000; padding: 4px 8px; border-radius: 8px; 
-                                         margin-top: 4px; font-weight: bold; font-size: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); white-space: nowrap;">
+                            <div style="background: white; color: #000; padding: 5px 10px; border-radius: 10px; 
+                                         margin-top: 5px; font-weight: bold; font-size: 12px; box-shadow: 0 3px 8px rgba(0,0,0,0.2); white-space: nowrap;">
                                 #${order.id}
                             </div>
                         `,
                         className: 'custom-marker',
-                        iconSize: [35, 35],
-                        iconAnchor: [17.5, 35],
-                        popupAnchor: [0, -35]
+                        iconSize: [40, 40],
+                        iconAnchor: [20, 40],
+                        popupAnchor: [0, -40]
                     });
                     
                     const marker = L.marker([order.locationLat, order.locationLng], { icon: markerIcon })
                         .addTo(map)
                         .bindPopup(`
-                            <div style="text-align: right; direction: rtl; font-family: Cairo; min-width: 180px; font-size: 14px;">
-                                <h3 style="margin: 0 0 8px 0; color: #ff6600; font-size: 16px;">طلب #${order.id}</h3>
-                                <p style="margin: 4px 0;"><strong>العميل:</strong> ${order.customerName || 'عميل'}</p>
-                                <p style="margin: 4px 0;"><strong>الحالة:</strong> ${order.status === 'Ready' ? 'جاهز للتسليم' : 
-                                                             order.status === 'Picked' ? 'قيد التوصيل' : 
-                                                             order.status === 'Assigned' ? 'مخصص لك' : 'قيد التحضير'}</p>
-                                <p style="margin: 4px 0;"><strong>العنوان:</strong> ${order.addressDetails || 'غير محدد'}</p>
+                            <div style="text-align: right; direction: rtl; font-family: Cairo; min-width: 200px; font-size: 14px;">
+                                <h3 style="margin: 0 0 10px 0; color: #ff6600; font-size: 16px;">طلب #${order.id}</h3>
+                                <p style="margin: 5px 0;"><strong>العميل:</strong> ${order.customerName || 'عميل'}</p>
+                                <p style="margin: 5px 0;"><strong>الحالة:</strong> ${order.status === 'Ready' ? 'جاهز للتسليم' : 
+                                                             order.status === 'Picked' ? 'قيد التوصيل' : 'مخصص لك'}</p>
+                                <p style="margin: 5px 0;"><strong>العنوان:</strong> ${order.addressDetails || 'غير محدد'}</p>
                                 <button onclick="showOrderDetails(${order.id}); closeOrderModal();" 
-                                        style="background: #ff6600; color: white; border: none; padding: 6px 12px; 
-                                               border-radius: 5px; cursor: pointer; width: 100%; margin-top: 8px; font-family: Cairo; font-size: 14px;">
+                                        style="background: #ff6600; color: white; border: none; padding: 8px 15px; 
+                                               border-radius: 8px; cursor: pointer; width: 100%; margin-top: 10px; font-family: Cairo; font-size: 14px; font-weight: bold;">
                                     عرض التفاصيل
                                 </button>
                             </div>
@@ -3024,42 +2479,6 @@
                 updateDriverStatusUI();
                 closeStatusModal();
                 
-                // Update on server
-                await updateDriverStatusOnServer();
-                
-                if (currentLocation) {
-                    await updateDriverLocation();
-                }
-                
-                // Start/stop polling based on status
-                if (driverStatus === 'offline') {
-                    if (pollingInterval) {
-                        clearInterval(pollingInterval);
-                        pollingInterval = null;
-                    }
-                    if (locationInterval) {
-                        clearInterval(locationInterval);
-                        locationInterval = null;
-                    }
-                    if (heartbeatInterval) {
-                        clearInterval(heartbeatInterval);
-                        heartbeatInterval = null;
-                    }
-                    
-                    isConnected = false;
-                } else {
-                    // Reconnect to server
-                    const result = await connectToServer();
-                    isConnected = result.success;
-                    
-                    if (result.success) {
-                        // Restart intervals
-                        startPolling();
-                        startLocationUpdates();
-                        startHeartbeat();
-                    }
-                }
-                
                 // Show confirmation
                 Swal.fire({
                     icon: 'success',
@@ -3138,16 +2557,16 @@
                         } else {
                             const driverIcon = L.divIcon({
                                 html: `
-                                    <div style="background: #ff6600; width: 45px; height: 45px; border-radius: 50%; 
+                                    <div style="background: #ff6600; width: 50px; height: 50px; border-radius: 50%; 
                                                  display: flex; align-items: center; justify-content: center; 
-                                                 color: white; border: 3px solid white; box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+                                                 color: white; border: 3px solid white; box-shadow: 0 3px 15px rgba(0,0,0,0.4);
                                                  animation: pulse 2s infinite;">
-                                        <i class="fas fa-motorcycle" style="font-size: 20px;"></i>
+                                        <i class="fas fa-motorcycle" style="font-size: 22px;"></i>
                                     </div>
                                 `,
                                 className: 'driver-marker',
-                                iconSize: [45, 45],
-                                iconAnchor: [22.5, 45]
+                                iconSize: [50, 50],
+                                iconAnchor: [25, 50]
                             });
                             
                             driverMarker = L.marker([lat, lng], { icon: driverIcon })
@@ -3166,25 +2585,10 @@
                         Swal.close();
                         console.error('Error getting location:', error);
                         
-                        let errorMessage = 'تعذر الحصول على موقعك. ';
-                        switch(error.code) {
-                            case error.PERMISSION_DENIED:
-                                errorMessage += 'تم رفض الإذن. يرجى تفعيل خدمات الموقع في إعدادات المتصفح.';
-                                break;
-                            case error.POSITION_UNAVAILABLE:
-                                errorMessage += 'معلومات الموقع غير متاحة.';
-                                break;
-                            case error.TIMEOUT:
-                                errorMessage += 'انتهت مهلة طلب الموقع.';
-                                break;
-                            default:
-                                errorMessage += 'حدث خطأ غير معروف.';
-                        }
-                        
                         Swal.fire({
                             icon: 'error',
                             title: 'خطأ في الموقع',
-                            text: errorMessage,
+                            text: 'تعذر الحصول على موقعك. يرجى تفعيل خدمات الموقع.',
                             confirmButtonText: 'حسناً',
                             background: '#222',
                             color: '#fff'
@@ -3207,11 +2611,6 @@
             }
         }
         
-        function toggleOrdersPanel() {
-            const panel = document.getElementById('orders-panel');
-            panel.classList.toggle('expanded');
-        }
-        
         function closeOrderModal() {
             document.getElementById('order-modal').classList.remove('active');
         }
@@ -3229,7 +2628,6 @@
             console.log('✅ Connection restored');
             updateConnectionStatus('متصل بالإنترنت', 'connected');
             
-            // Reinitialize connection
             setTimeout(async () => {
                 const test = await testAPIConnection();
                 if (test.success) {
@@ -3239,12 +2637,6 @@
                     if (driverStatus !== 'offline') {
                         await connectToServer();
                         loadOrders();
-                        
-                        if (driverStatus === 'online' || driverStatus === 'busy') {
-                            startPolling();
-                            startLocationUpdates();
-                            startHeartbeat();
-                        }
                     }
                 }
             }, 1000);
@@ -3256,6 +2648,17 @@
             isConnected = false;
         });
         
+        // Handle resize
+        window.addEventListener('resize', () => {
+            // Update sheet height on resize
+            sheetHeight = window.innerHeight * 0.85;
+            
+            const sheet = document.getElementById('orders-sheet');
+            if (!isSheetExpanded) {
+                sheet.style.transform = `translateY(calc(100% - ${sheetCollapsedHeight}px))`;
+            }
+        });
+        
         // Handle beforeunload
         window.addEventListener('beforeunload', () => {
             console.log('Page unloading, cleaning up...');
@@ -3263,41 +2666,7 @@
             if (pollingInterval) clearInterval(pollingInterval);
             if (locationInterval) clearInterval(locationInterval);
             if (heartbeatInterval) clearInterval(heartbeatInterval);
-            
-            // Try to update status to offline
-            if (driverStatus !== 'offline' && navigator.sendBeacon && connectionToken) {
-                const data = new FormData();
-                data.append('action', 'updateDriverStatus');
-                data.append('driverId', driverId);
-                data.append('status', 'offline');
-                data.append('connectionToken', connectionToken);
-                data.append('timestamp', Date.now().toString());
-                
-                navigator.sendBeacon(API_URL, data);
-            }
         });
-        
-        // Prevent pull-to-refresh on mobile
-        document.addEventListener('touchmove', function(e) {
-            if (e.target.closest('.orders-list') || e.target.closest('.order-modal-content')) {
-                return;
-            }
-            e.preventDefault();
-        }, { passive: false });
-        
-        // Handle back button on mobile
-        window.addEventListener('popstate', function() {
-            if (document.getElementById('order-modal').classList.contains('active')) {
-                closeOrderModal();
-                history.pushState(null, null, window.location.pathname);
-            } else if (document.getElementById('status-modal').classList.contains('active')) {
-                closeStatusModal();
-                history.pushState(null, null, window.location.pathname);
-            }
-        });
-        
-        // Push initial state
-        history.pushState(null, null, window.location.pathname);
     </script>
 </body>
 </html>
