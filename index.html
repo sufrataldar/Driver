@@ -793,19 +793,24 @@
             }
         }
         
-        /* Modal and other styles */
+        /* ========================================= */
+        /* MODAL: تصميم محسّن ومتطور لشاشة حالة السائق */
+        /* ========================================= */
         .status-modal {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.95);
+            background: rgba(0, 0, 0, 0.92);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             z-index: 2000;
             display: none;
             align-items: center;
             justify-content: center;
             padding: 20px;
+            animation: fadeIn 0.3s ease;
         }
         
         .status-modal.active {
@@ -813,24 +818,229 @@
         }
         
         .status-modal-content {
-            background: linear-gradient(135deg, var(--card) 0%, var(--darker) 100%);
-            border-radius: 20px;
-            padding: 25px;
+            background: linear-gradient(145deg, var(--darker) 0%, #1a1a1a 100%);
+            border-radius: 24px;
+            padding: 30px 25px 25px;
             width: 100%;
-            max-width: 400px;
+            max-width: 420px;
+            border: 1px solid rgba(255, 102, 0, 0.3);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 102, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+            animation: modalSlideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        .status-modal-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+            border-radius: 24px 24px 0 0;
+        }
+        
+        .status-modal-header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+        
+        .status-modal-header h3 {
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: var(--primary);
+            margin-bottom: 8px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .status-modal-header p {
+            color: var(--text-gray);
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+        
+        .status-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .status-option {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            padding: 18px 20px;
+            background: var(--card);
             border: 2px solid var(--border);
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-            animation: modalSlideUp 0.3s ease;
+            border-radius: 18px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .status-option::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 0;
+            background: rgba(255, 102, 0, 0.05);
+            transition: width 0.3s ease;
+        }
+        
+        .status-option:hover::before {
+            width: 100%;
+        }
+        
+        .status-option:hover {
+            transform: translateY(-3px);
+            border-color: rgba(255, 102, 0, 0.5);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .status-option.active {
+            border-color: var(--primary);
+            background: linear-gradient(135deg, rgba(255, 102, 0, 0.15) 0%, rgba(255, 102, 0, 0.05) 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(255, 102, 0, 0.2);
+        }
+        
+        .status-option.active::after {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .status-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .status-option.active .status-icon {
+            transform: scale(1.1);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .status-icon.online {
+            background: linear-gradient(135deg, var(--success) 0%, var(--success-dark) 100%);
+            color: white;
+        }
+        
+        .status-icon.busy {
+            background: linear-gradient(135deg, var(--warning) 0%, #e6ac00 100%);
+            color: #000;
+        }
+        
+        .status-icon.offline {
+            background: linear-gradient(135deg, var(--danger) 0%, #cc0000 100%);
+            color: white;
+        }
+        
+        .status-info {
+            flex: 1;
+            min-width: 0;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .status-title {
+            font-size: 1.1rem;
+            font-weight: 800;
+            margin-bottom: 6px;
+            color: var(--text);
+        }
+        
+        .status-description {
+            font-size: 0.85rem;
+            color: var(--text-gray);
+            line-height: 1.5;
+        }
+        
+        .status-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        
+        .status-btn {
+            flex: 1;
+            padding: 16px;
+            border: none;
+            border-radius: 14px;
+            font-family: 'Cairo';
+            font-weight: 900;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 1rem;
+            letter-spacing: -0.3px;
+        }
+        
+        .status-btn:active {
+            transform: scale(0.97);
+        }
+        
+        .status-btn.cancel {
+            background: var(--card-light);
+            color: var(--text-gray);
+            border: 1px solid var(--border);
+        }
+        
+        .status-btn.cancel:hover {
+            background: #2a2a2a;
+            color: var(--text);
+        }
+        
+        .status-btn.confirm {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #000;
+            box-shadow: 0 5px 15px rgba(255, 102, 0, 0.3);
+        }
+        
+        .status-btn.confirm:hover {
+            box-shadow: 0 8px 20px rgba(255, 102, 0, 0.4);
+            transform: translateY(-2px);
+        }
+        
+        .status-btn.confirm:active {
+            box-shadow: 0 3px 10px rgba(255, 102, 0, 0.3);
+            transform: translateY(0);
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
         
         @keyframes modalSlideUp {
             from {
                 opacity: 0;
-                transform: translateY(50px);
+                transform: translateY(60px) scale(0.95);
             }
             to {
                 opacity: 1;
-                transform: translateY(0);
+                transform: translateY(0) scale(1);
             }
         }
         
@@ -849,6 +1059,51 @@
             color: var(--text-gray);
             font-size: 0.8rem;
             opacity: 0.6;
+        }
+        
+        /* Order Details Modal */
+        .order-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .order-modal.active {
+            display: flex;
+        }
+        
+        .order-modal-content {
+            background: linear-gradient(135deg, var(--card) 0%, var(--darker) 100%);
+            border-radius: 20px;
+            padding: 25px;
+            width: 100%;
+            max-width: 400px;
+            border: 2px solid var(--border);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            animation: modalSlideUp 0.3s ease;
+        }
+        
+        .order-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .order-modal-header h3 {
+            font-size: 1.4rem;
+            font-weight: 900;
+            color: var(--primary);
         }
         
         /* Responsive adjustments */
@@ -905,6 +1160,37 @@
                 width: 280px !important;
                 max-height: 350px !important;
             }
+            
+            /* تعديلات للـ status modal على الشاشات الصغيرة */
+            .status-modal-content {
+                padding: 25px 20px 20px;
+                border-radius: 20px;
+            }
+            
+            .status-modal-header h3 {
+                font-size: 1.4rem;
+            }
+            
+            .status-option {
+                padding: 16px 18px;
+                border-radius: 16px;
+            }
+            
+            .status-icon {
+                width: 55px;
+                height: 55px;
+                font-size: 1.6rem;
+                border-radius: 14px;
+            }
+            
+            .status-title {
+                font-size: 1rem;
+            }
+            
+            .status-btn {
+                padding: 14px;
+                font-size: 0.95rem;
+            }
         }
         
         @media (max-width: 380px) {
@@ -930,12 +1216,31 @@
             .leaflet-routing-container {
                 width: 250px !important;
             }
+            
+            .status-option {
+                padding: 14px 16px;
+                gap: 15px;
+            }
+            
+            .status-icon {
+                width: 50px;
+                height: 50px;
+                font-size: 1.5rem;
+            }
+            
+            .status-modal-content {
+                padding: 22px 18px 18px;
+            }
         }
         
         /* تحسينات للشاشات الطويلة */
         @media (min-height: 800px) {
             :root {
                 --sheet-expanded-height: 50vh;
+            }
+            
+            .status-modal-content {
+                max-width: 440px;
             }
         }
         
@@ -1021,6 +1326,79 @@
         
         .orders-sheet.expanded {
             animation: sheetBounce 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        
+        /* تصميم محسّن للـ order details */
+        .order-detail-section {
+            margin-bottom: 25px;
+        }
+        
+        .section-title {
+            font-size: 1rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255, 102, 0, 0.2);
+        }
+        
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        
+        .detail-item {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .detail-label {
+            font-size: 0.8rem;
+            color: var(--text-gray);
+            margin-bottom: 5px;
+        }
+        
+        .detail-value {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text);
+            word-break: break-word;
+        }
+        
+        .order-items {
+            background: var(--card-light);
+            border-radius: 12px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .order-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .order-item:last-child {
+            border-bottom: none;
+        }
+        
+        .order-item span:first-child {
+            color: var(--primary);
+            font-weight: 800;
+            margin-left: 10px;
+            min-width: 25px;
+        }
+        
+        .order-item span:last-child {
+            flex: 1;
         }
     </style>
 </head>
@@ -1132,22 +1510,22 @@
     <!-- Overlay أثناء السحب -->
     <div class="drag-overlay" id="drag-overlay"></div>
     
-    <!-- Status Modal -->
+    <!-- Status Modal - التصميم المحسّن -->
     <div class="status-modal" id="status-modal">
         <div class="status-modal-content">
             <div class="status-modal-header">
-                <h3>حالة السائق</h3>
-                <p>اختر حالتك الحالية</p>
+                <h3>تغيير حالة السائق</h3>
+                <p>اختر حالتك الحالية من الخيارات التالية</p>
             </div>
             
             <div class="status-options">
                 <div class="status-option" data-status="online" onclick="selectStatus('online')">
                     <div class="status-icon online">
-                        <i class="fas fa-check"></i>
+                        <i class="fas fa-check-circle"></i>
                     </div>
                     <div class="status-info">
                         <div class="status-title">متاح للتوصيل</div>
-                        <div class="status-description">يمكنك استلام طلبات جديدة</div>
+                        <div class="status-description">يمكنك استلام طلبات جديدة وتلقي إشعارات</div>
                     </div>
                 </div>
                 
@@ -2863,10 +3241,14 @@
             }
         }
         
-        // Driver Status Functions
+        // Driver Status Functions - المحسّنة
         function openStatusModal() {
             document.getElementById('status-modal').classList.add('active');
             
+            // منع التمرير في الخلفية
+            document.body.style.overflow = 'hidden';
+            
+            // تعيين الخيار النشط بناءً على الحالة الحالية
             document.querySelectorAll('.status-option').forEach(option => {
                 option.classList.remove('active');
                 if (option.dataset.status === driverStatus) {
@@ -2877,25 +3259,37 @@
         
         function closeStatusModal() {
             document.getElementById('status-modal').classList.remove('active');
+            document.body.style.overflow = '';
         }
         
         function selectStatus(status) {
+            event.stopPropagation();
+            
+            // إزالة النشاط من جميع الخيارات
             document.querySelectorAll('.status-option').forEach(option => {
                 option.classList.remove('active');
             });
+            
+            // إضافة النشاط للخيار المحدد
             event.currentTarget.classList.add('active');
             driverStatus = status;
         }
         
         async function updateDriverStatus() {
             try {
+                // حفظ الحالة الجديدة
                 localStorage.setItem('driverStatus', driverStatus);
+                
+                // تحديث واجهة المستخدم
                 updateDriverStatusUI();
+                
+                // إغلاق النافذة المنبثقة
                 closeStatusModal();
                 
+                // عرض رسالة نجاح
                 Swal.fire({
                     icon: 'success',
-                    title: 'تم تحديث الحالة',
+                    title: 'تم تحديث الحالة بنجاح',
                     text: `أنت الآن ${driverStatus === 'online' ? 'متاح للتوصيل' : 
                                          driverStatus === 'busy' ? 'مشغول' : 'غير متصل'}`,
                     timer: 2000,
@@ -2904,14 +3298,15 @@
                     color: '#fff'
                 });
                 
+                // إعادة تحميل الطلبات بناءً على الحالة الجديدة
                 loadOrders();
                 
             } catch (error) {
                 console.error('Error updating status:', error);
                 Swal.fire({
                     icon: 'error',
-                    title: 'خطأ',
-                    text: 'فشل تحديث الحالة',
+                    title: 'خطأ في تحديث الحالة',
+                    text: 'يرجى المحاولة مرة أخرى',
                     background: '#222',
                     color: '#fff'
                 });
@@ -2922,9 +3317,11 @@
             const indicator = document.getElementById('status-indicator');
             const text = document.getElementById('status-text');
             
+            // تحديث مؤشر الحالة
             indicator.className = 'status-indicator ' + driverStatus;
             text.className = 'status-text ' + driverStatus;
             
+            // تحديث النص بناءً على الحالة
             switch(driverStatus) {
                 case 'online':
                     text.textContent = 'متاح للتوصيل';
