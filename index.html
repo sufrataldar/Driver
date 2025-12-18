@@ -1795,7 +1795,6 @@
 
         // 2. فك روابط مختصرة (محاكاة - في الإنتاج تحتاج إلى API)
         function extractFromShortUrl(shortUrl) {
-            // هذا حل مؤقت - في التطبيق الحقيقي تحتاج إلى فك الروابط عبر خدمة
             console.log(`🔗 محاولة فك الرابط المختصر: ${shortUrl}`);
             
             // محاولة استخراج أي إحداثيات من الرابط
@@ -1874,7 +1873,7 @@
             return null;
         }
 
-        // 4. نظام التنقل المحسن مع معالجة الأخطاء
+        // 4. نظام التنقل المحسن مع استخدام OSRM المجاني
         async function enhancedNavigateToOrder(orderId) {
             try {
                 console.log(`🚀 بدء التنقل للطلب: ${orderId}`);
@@ -1944,7 +1943,10 @@
                 const bounds = L.latLngBounds([startPoint, endPoint]);
                 map.fitBounds(bounds, { padding: [100, 100] });
                 
-                // تهيئة نظام التوجيه مع خيارات محسنة
+                // === الإصلاح: استخدام OSRM المجاني بدلاً من Mapbox ===
+                // OSRM (Open Source Routing Machine) هو خدمة مجانية ومفتوحة المصدر
+                
+                // تهيئة نظام التوجيه مع OSRM
                 routingControl = L.Routing.control({
                     waypoints: [startPoint, endPoint],
                     routeWhileDragging: false,
@@ -2027,8 +2029,10 @@
                         language: 'ar',
                         units: 'metric'
                     }),
-                    router: L.Routing.mapbox('pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4M29iazA2Z2gycXA4N2pmbDZmangifQ.-g_vE53SD2WrJ6tFX7QHmA', {
-                        profile: 'mapbox/driving',
+                    // === الإصلاح: استخدام OSRM المجاني ===
+                    router: new L.Routing.OSRMv1({
+                        serviceUrl: 'https://router.project-osrm.org/route/v1',
+                        profile: 'driving',
                         language: 'ar'
                     })
                 }).addTo(map);
@@ -2093,7 +2097,8 @@
                         
                     } else {
                         loadingSwal.close();
-                        throw new Error('لم يتم العثور على مسار');
+                        // إذا لم يتم العثور على مسار، استخدم المسار المباشر
+                        fallbackRouteDrawing(startPoint, endPoint, order);
                     }
                 });
                 
@@ -2409,93 +2414,6 @@
                 
                 orderMarkers.push(marker);
             });
-        }
-
-        // 10. نظام استخراج الإحداثيات القديم (للتوافق)
-        function extractCoordinatesFromOrder(order) {
-            // الحالة 1: استخدام النظام المحسن أولاً
-            const enhancedCoords = validateAndFixCoordinates(order);
-            if (enhancedCoords) return enhancedCoords;
-            
-            // الحالة 2: المنهج القديم كبديل
-            const locationLink = order.location || order.googleMapsLink || order.mapLink;
-            
-            if (!locationLink) {
-                console.log(`⚠️ No location link found for order ${order.id}`);
-                return null;
-            }
-            
-            console.log(`🔍 Processing location link for order ${order.id}:`, locationLink);
-            
-            let extractedCoords = null;
-            
-            // البحث عن نمط lat,lng في أي مكان في الرابط
-            const coordPattern = /([-+]?\d+\.\d+)[,; ]+([-+]?\d+\.\d+)/;
-            const coordMatch = locationLink.match(coordPattern);
-            if (coordMatch) {
-                extractedCoords = {
-                    lat: parseFloat(coordMatch[1]),
-                    lng: parseFloat(coordMatch[2])
-                };
-                console.log(`📍 Extracted from general coordinate pattern:`, extractedCoords);
-            }
-            
-            if (!extractedCoords) {
-                console.error(`❌ Failed to extract coordinates from link: ${locationLink}`);
-                extractedCoords = {
-                    lat: 29.3759,
-                    lng: 47.9774
-                };
-                console.log(`📍 Using default Kuwait location:`, extractedCoords);
-            }
-            
-            return extractedCoords;
-        }
-
-        // 11. تحميل المكتبات الإضافية
-        async function loadAdditionalLibraries() {
-            // يمكن إضافة مكتبات إضافية هنا
-            console.log('📚 مكتبات التنقل الإضافية جاهزة');
-        }
-
-        // 12. اختبار نظام التنقل
-        async function testNavigationSystem() {
-            console.log('🧪 اختبار نظام التنقل...');
-            
-            // اختبار استخراج الإحداثيات
-            const testUrls = [
-                'https://www.google.com/maps/@29.375859,47.977405,15z',
-                'https://www.google.com/maps?q=29.375859,47.977405',
-                'https://www.google.com/maps/place/29.375859+47.977405',
-                'https://www.google.com/maps/dir//29.375859,47.977405',
-                'https://goo.gl/maps/ABC123',
-                'https://maps.app.goo.gl/XYZ789'
-            ];
-            
-            testUrls.forEach(url => {
-                const coords = extractCoordinatesFromGoogleMaps(url);
-                console.log(`🔗 ${url} →`, coords);
-            });
-            
-            console.log('✅ اختبار نظام التنقل اكتمل');
-        }
-
-        // 13. تهيئة محسنة عند تحميل التطبيق
-        async function enhancedInit() {
-            try {
-                console.log('🚀 بدء التهيئة المحسنة...');
-                
-                // تهيئة القيم الأساسية
-                await init();
-                
-                // اختبار نظام التنقل
-                await testNavigationSystem();
-                
-                console.log('✅ التهيئة المحسنة اكتملت بنجاح');
-                
-            } catch (error) {
-                console.error('❌ خطأ في التهيئة المحسنة:', error);
-            }
         }
 
         // Initialize the application
@@ -3529,7 +3447,6 @@
         function logCustomerCall(orderId, phoneNumber) {
             console.log(`📞 Logging call to order ${orderId}, phone: ${phoneNumber}`);
             
-            // يمكن هنا إضافة كود لإرسال السجل إلى السيرفر
             try {
                 const params = new URLSearchParams();
                 params.append('action', 'logCustomerCall');
@@ -3542,7 +3459,7 @@
                     params.append('connectionToken', connectionToken);
                 }
                 
-                // إرسال الطلب بشكل غير متزامن (لا ننتظر الرد)
+                // إرسال الطلب بشكل غير متزامن
                 fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -3971,7 +3888,7 @@
             }
         }
         
-        // Driver Status Functions - المحسّنة
+        // Driver Status Functions
         function openStatusModal() {
             document.getElementById('status-modal').classList.add('active');
             
@@ -4150,8 +4067,8 @@
             document.getElementById('order-modal').classList.remove('active');
         }
         
-        // Initialize app with enhanced system
-        document.addEventListener('DOMContentLoaded', enhancedInit);
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', init);
         
         // Handle online/offline status
         window.addEventListener('online', () => {
