@@ -586,6 +586,7 @@
             gap: 6px;
         }
         
+        /* صف أزرار الطلب - تم التعديل لإضافة زر ثالث */
         .order-actions-row {
             display: flex;
             gap: 10px;
@@ -606,6 +607,7 @@
             justify-content: center;
             gap: 8px;
             font-size: 0.95rem;
+            min-height: 48px;
         }
         
         .order-action-btn:active {
@@ -624,6 +626,16 @@
         
         .action-details {
             background: linear-gradient(135deg, var(--info) 0%, #2980b9 100%);
+            color: white;
+        }
+        
+        .action-call {
+            background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
+            color: white;
+        }
+        
+        .action-navigate {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
             color: white;
         }
         
@@ -2645,8 +2657,11 @@
                                 <button class="order-action-btn action-deliver" onclick="event.stopPropagation(); markDelivered(${order.id})">
                                     <i class="fas fa-check-circle"></i> تم التوصيل
                                 </button>
-                                <button class="order-action-btn action-details" onclick="event.stopPropagation(); showNavigation(${order.id})">
+                                <button class="order-action-btn action-navigate" onclick="event.stopPropagation(); showNavigation(${order.id})">
                                     <i class="fas fa-directions"></i> تنقل
+                                </button>
+                                <button class="order-action-btn action-call" onclick="event.stopPropagation(); callCustomer(${order.id})">
+                                    <i class="fas fa-phone"></i> اتصل بالعميل
                                 </button>
                             ` : ''}
                         </div>
@@ -2655,6 +2670,132 @@
             });
             
             ordersList.innerHTML = html;
+        }
+        
+        // دالة الاتصال بالعميل
+        function callCustomer(orderId) {
+            const order = [...activeOrders, ...pickedOrders].find(o => o.id == orderId);
+            if (!order) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: 'لم يتم العثور على الطلب',
+                    background: '#222',
+                    color: '#fff'
+                });
+                return;
+            }
+            
+            const customerPhone = order.phone;
+            if (!customerPhone) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'رقم الهاتف غير متوفر',
+                    text: 'لا يوجد رقم هاتف مسجل للعميل في هذا الطلب',
+                    background: '#222',
+                    color: '#fff'
+                });
+                return;
+            }
+            
+            // تنظيف رقم الهاتف من أي أحرف غير رقمية
+            const cleanPhone = customerPhone.replace(/\D/g, '');
+            
+            // التحقق من صحة رقم الهاتف
+            if (cleanPhone.length < 8) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'رقم هاتف غير صالح',
+                    text: 'رقم الهاتف المرفق بالطلب غير صالح',
+                    background: '#222',
+                    color: '#fff'
+                });
+                return;
+            }
+            
+            // عرض تأكيد الاتصال
+            Swal.fire({
+                title: 'تأكيد الاتصال',
+                html: `
+                    <div style="text-align: center; padding: 10px;">
+                        <div style="font-size: 1.1rem; margin-bottom: 15px;">
+                            <i class="fas fa-phone" style="color: #4CAF50; font-size: 2rem; margin-bottom: 10px;"></i>
+                            <div style="margin-top: 10px;">هل تريد الاتصال بالعميل:</div>
+                            <div style="font-weight: bold; font-size: 1.2rem; margin: 10px 0;">${order.customerName || 'العميل'}</div>
+                            <div style="direction: ltr; font-family: monospace; background: var(--card-light); padding: 8px; border-radius: 8px; margin: 15px 0;">
+                                ${customerPhone}
+                            </div>
+                        </div>
+                    </div>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'نعم، اتصل الآن',
+                cancelButtonText: 'إلغاء',
+                background: '#222',
+                color: '#fff',
+                allowOutsideClick: false,
+                showClass: {
+                    popup: 'animate__animated animate__fadeInDown'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // إنشاء رابط الاتصال الهاتفي
+                    const telLink = `tel:${cleanPhone}`;
+                    
+                    // محاولة فتح تطبيق الهاتف
+                    window.open(telLink, '_self');
+                    
+                    // تسجيل عملية الاتصال
+                    logCustomerCall(orderId, customerPhone);
+                    
+                    // عرض رسالة تأكيد
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'جاري الاتصال',
+                        text: 'يتم الآن فتح تطبيق الهاتف للاتصال بالعميل',
+                        timer: 2000,
+                        showConfirmButton: false,
+                        background: '#222',
+                        color: '#fff'
+                    });
+                }
+            });
+        }
+        
+        // تسجيل عملية الاتصال بالعميل
+        function logCustomerCall(orderId, phoneNumber) {
+            console.log(`📞 Logging call to order ${orderId}, phone: ${phoneNumber}`);
+            
+            // يمكن هنا إضافة كود لإرسال السجل إلى السيرفر
+            try {
+                const params = new URLSearchParams();
+                params.append('action', 'logCustomerCall');
+                params.append('orderId', orderId);
+                params.append('driverId', driverId);
+                params.append('phone', phoneNumber);
+                params.append('timestamp', Date.now());
+                
+                if (connectionToken) {
+                    params.append('connectionToken', connectionToken);
+                }
+                
+                // إرسال الطلب بشكل غير متزامن (لا ننتظر الرد)
+                fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: params,
+                    mode: 'cors'
+                }).then(response => {
+                    if (response.ok) {
+                        console.log('✅ Call logged successfully');
+                    }
+                }).catch(error => {
+                    console.error('❌ Error logging call:', error);
+                });
+            } catch (error) {
+                console.error('❌ Error in logCustomerCall:', error);
+            }
         }
         
         // Switch between orders tabs
@@ -2735,6 +2876,15 @@
                   </div>`
                 : '';
             
+            // زر الاتصال بالعميل في التفاصيل
+            const callButton = order.phone ? `
+                <div style="margin-top: 15px;">
+                    <button class="order-action-btn action-call" style="width: 100%;" onclick="callCustomer(${order.id}); closeOrderModal();">
+                        <i class="fas fa-phone"></i> الاتصال بالعميل: ${order.phone}
+                    </button>
+                </div>
+            ` : '';
+            
             const modalBody = document.getElementById('order-modal-body');
             modalBody.innerHTML = `
                 <div class="order-detail-section">
@@ -2770,7 +2920,7 @@
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">رقم الهاتف</div>
-                            <div class="detail-value" dir="ltr">${order.phone || ''}</div>
+                            <div class="detail-value" dir="ltr">${order.phone || 'غير متوفر'}</div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">العنوان</div>
@@ -2778,6 +2928,7 @@
                         </div>
                         ${locationInfo}
                     </div>
+                    ${callButton}
                 </div>
                 
                 <div class="order-detail-section">
@@ -3390,12 +3541,22 @@
                                 <p style="margin: 5px 0;"><strong>الحالة:</strong> ${order.status === 'Ready' ? 'جاهز للتسليم' : 
                                                              order.status === 'Picked' ? 'قيد التوصيل' : 'مخصص لك'}</p>
                                 <p style="margin: 5px 0;"><strong>العنوان:</strong> ${order.addressDetails || 'غير محدد'}</p>
+                                <p style="margin: 5px 0;"><strong>الهاتف:</strong> ${order.phone || 'غير متوفر'}</p>
                                 <p style="margin: 5px 0;"><strong>الإحداثيات:</strong> ${order.locationLat.toFixed(6)}, ${order.locationLng.toFixed(6)}</p>
-                                <button onclick="showNavigation(${order.id})" 
-                                        style="background: #ff6600; color: white; border: none; padding: 8px 15px; 
-                                               border-radius: 8px; cursor: pointer; width: 100%; margin-top: 10px; font-family: Cairo; font-size: 14px; font-weight: bold;">
-                                    <i class="fas fa-directions"></i> التنقل إلى الموقع
-                                </button>
+                                <div style="display: flex; gap: 5px; margin-top: 10px;">
+                                    <button onclick="showNavigation(${order.id})" 
+                                            style="flex: 1; background: #2196F3; color: white; border: none; padding: 8px; 
+                                                   border-radius: 8px; cursor: pointer; font-family: Cairo; font-size: 12px; font-weight: bold;">
+                                        <i class="fas fa-directions"></i> تنقل
+                                    </button>
+                                    ${order.phone ? `
+                                    <button onclick="callCustomer(${order.id})" 
+                                            style="flex: 1; background: #4CAF50; color: white; border: none; padding: 8px; 
+                                                   border-radius: 8px; cursor: pointer; font-family: Cairo; font-size: 12px; font-weight: bold;">
+                                        <i class="fas fa-phone"></i> اتصل
+                                    </button>
+                                    ` : ''}
+                                </div>
                             </div>
                         `);
                     
