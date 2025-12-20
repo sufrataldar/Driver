@@ -1141,11 +1141,6 @@
             font-size: 0.9rem;
         }
         
-        /* Order Markers */
-        .order-marker {
-            cursor: pointer;
-        }
-        
         /* Active Navigation */
         .active-navigation {
             position: absolute;
@@ -1243,37 +1238,62 @@
             font-weight: bold;
         }
         
-        /* Direct Navigation Button */
-        .direct-navigation-btn {
+        /* Route Instructions */
+        .route-instructions {
             position: absolute;
-            bottom: 150px;
+            top: 90px;
             left: 20px;
             right: 20px;
-            background: linear-gradient(135deg, #4285F4 0%, #0d47a1 100%);
-            color: white;
-            border: none;
-            padding: 16px;
-            border-radius: 12px;
-            font-family: 'Cairo';
-            font-weight: 900;
-            cursor: pointer;
+            background: rgba(0,0,0,0.9);
+            border-radius: 15px;
+            padding: 15px;
+            z-index: 999;
+            border: 2px solid var(--primary);
+            backdrop-filter: blur(10px);
+            display: none;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .route-instructions.show {
+            display: block;
+        }
+        
+        .instruction-step {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .instruction-step:last-child {
+            border-bottom: none;
+        }
+        
+        .step-icon {
+            width: 30px;
+            height: 30px;
+            background: var(--primary);
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            z-index: 1000;
-            box-shadow: 0 6px 20px rgba(66, 133, 244, 0.4);
-            animation: pulse-blue 2s infinite;
+            flex-shrink: 0;
+            font-size: 0.8rem;
         }
         
-        .direct-navigation-btn:active {
-            transform: scale(0.98);
+        .step-text {
+            flex: 1;
+            font-size: 0.9rem;
         }
         
-        @keyframes pulse-blue {
-            0% { box-shadow: 0 6px 20px rgba(66, 133, 244, 0.4); }
-            50% { box-shadow: 0 6px 25px rgba(66, 133, 244, 0.7); }
-            100% { box-shadow: 0 6px 20px rgba(66, 133, 244, 0.4); }
+        .step-distance {
+            color: var(--primary);
+            font-weight: bold;
+            font-size: 0.8rem;
+            min-width: 60px;
+            text-align: left;
         }
         
         /* Responsive adjustments */
@@ -1332,10 +1352,10 @@
                 max-width: none;
             }
             
-            .direct-navigation-btn {
-                bottom: 130px;
-                padding: 14px;
-                font-size: 0.9rem;
+            .route-instructions {
+                top: 80px;
+                left: 10px;
+                right: 10px;
             }
         }
         
@@ -1444,33 +1464,6 @@
                     </div>
                 </div>
                 
-                <div class="navigation-instructions">
-                    <div class="instruction-item">
-                        <div class="instruction-icon">
-                            <i class="fas fa-map-marker-alt"></i>
-                        </div>
-                        <div class="instruction-text">
-                            سيتم فتح خرائط جوجل للتنقل تلقائياً إلى موقع العميل
-                        </div>
-                    </div>
-                    <div class="instruction-item">
-                        <div class="instruction-icon">
-                            <i class="fas fa-sync-alt"></i>
-                        </div>
-                        <div class="instruction-text">
-                            يتم تحديث المسار تلقائياً أثناء القيادة
-                        </div>
-                    </div>
-                    <div class="instruction-item">
-                        <div class="instruction-icon">
-                            <i class="fas fa-info-circle"></i>
-                        </div>
-                        <div class="instruction-text">
-                            للإرشادات الصوتية، تأكد من تفعيل الصوت في هاتفك
-                        </div>
-                    </div>
-                </div>
-                
                 <div class="navigation-progress">
                     <div class="navigation-progress-fill" id="nav-progress"></div>
                     <div class="navigation-progress-text" id="nav-progress-text">0%</div>
@@ -1482,6 +1475,19 @@
                     <button class="navigation-action-btn action-call" id="nav-call-btn" onclick="callNavigationCustomer()">
                         <i class="fas fa-phone"></i> اتصل بالعميل
                     </button>
+                    <button class="navigation-action-btn action-view-details" onclick="toggleRouteInstructions()">
+                        <i class="fas fa-list"></i> إرشادات
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Route Instructions -->
+            <div class="route-instructions" id="route-instructions">
+                <div style="text-align: center; margin-bottom: 10px; color: var(--primary); font-weight: bold;">
+                    <i class="fas fa-directions"></i> إرشادات المسار
+                </div>
+                <div id="route-steps-container">
+                    <!-- سيتم ملؤها بالجافاسكريبت -->
                 </div>
             </div>
             
@@ -1492,11 +1498,6 @@
                 <div class="navigation-distance" id="nav-remaining-distance">0 كم</div>
                 <div class="navigation-time" id="nav-remaining-time">0 دقيقة</div>
             </div>
-            
-            <!-- Direct Navigation Button -->
-            <button class="direct-navigation-btn" id="direct-navigation-btn" onclick="openGoogleMapsNavigation()" style="display: none;">
-                <i class="fab fa-google"></i> افتح خرائط جوجل للتنقل
-            </button>
             
             <!-- Live Tracking Info -->
             <div class="tracking-info" id="tracking-info">
@@ -1662,8 +1663,9 @@
         let lastPosition = null;
         let currentSpeed = 0;
         let currentHeading = 0;
-        let compassWatch = null;
-        let deviceOrientationData = null;
+        let routePolyline = null;
+        let routeInstructions = [];
+        let currentStepIndex = 0;
         
         let driverStatus = 'offline';
         let driverId = null;
@@ -1807,17 +1809,19 @@
                 directionsService = new google.maps.DirectionsService();
                 directionsRenderer = new google.maps.DirectionsRenderer({
                     map: googleMap,
-                    suppressMarkers: false,
+                    suppressMarkers: true, // إخفاء العلامات الافتراضية
                     preserveViewport: false,
                     polylineOptions: {
-                        strokeColor: '#ff6600',
+                        strokeColor: '#ff6600', // اللون البرتقالي
                         strokeOpacity: 0.9,
                         strokeWeight: 6,
                         icons: [{
                             icon: {
                                 path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
                                 scale: 4,
-                                strokeColor: '#ff6600'
+                                strokeColor: '#ff6600',
+                                fillColor: '#ff6600',
+                                fillOpacity: 1
                             },
                             offset: '100%',
                             repeat: '100px'
@@ -1961,27 +1965,7 @@
                     lastPosition = pos;
                     
                     // تحديث أو إنشاء علامة السائق
-                    if (driverMarker) {
-                        driverMarker.setPosition(pos);
-                    } else {
-                        driverMarker = new google.maps.Marker({
-                            position: pos,
-                            map: googleMap,
-                            icon: {
-                                url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="60" height="80" viewBox="0 0 60 80">
-                                        <circle cx="30" cy="30" r="20" fill="#ff6600" stroke="#ffffff" stroke-width="4"/>
-                                        <path d="M30,50 L30,70 L35,75 L25,75 L30,70 Z" fill="#ff6600" stroke="#ffffff" stroke-width="2"/>
-                                        <text x="30" y="30" text-anchor="middle" dy=".3em" fill="#ffffff" font-family="Arial" font-weight="bold" font-size="20">🚗</text>
-                                    </svg>
-                                `),
-                                scaledSize: new google.maps.Size(60, 80),
-                                anchor: new google.maps.Point(30, 80)
-                            },
-                            title: 'موقع السائق',
-                            animation: google.maps.Animation.DROP
-                        });
-                    }
+                    updateDriverMarker(pos);
                     
                     // تحريك الخريطة للموقع الحالي
                     googleMap.setCenter(pos);
@@ -2009,13 +1993,35 @@
             );
         }
         
+        function updateDriverMarker(position, heading = 0) {
+            if (driverMarker) {
+                driverMarker.setPosition(position);
+                driverMarker.setRotation(heading);
+            } else {
+                driverMarker = new google.maps.Marker({
+                    position: position,
+                    map: googleMap,
+                    icon: {
+                        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                            <svg xmlns="http://www.w3.org/2000/svg" width="60" height="80" viewBox="0 0 60 80">
+                                <circle cx="30" cy="30" r="20" fill="#ff6600" stroke="#ffffff" stroke-width="4"/>
+                                <path d="M30,50 L30,70 L35,75 L25,75 L30,70 Z" fill="#ff6600" stroke="#ffffff" stroke-width="2"/>
+                                <text x="30" y="30" text-anchor="middle" dy=".3em" fill="#ffffff" font-family="Arial" font-weight="bold" font-size="20">🚗</text>
+                            </svg>
+                        `),
+                        scaledSize: new google.maps.Size(60, 80),
+                        anchor: new google.maps.Point(30, 80)
+                    },
+                    title: 'موقع السائق',
+                    animation: google.maps.Animation.DROP
+                });
+            }
+        }
+        
         function startLiveTracking() {
             if (locationWatch) {
                 navigator.geolocation.clearWatch(locationWatch);
             }
-            
-            // بدء تتبع الاتجاهات من المستشعرات
-            startCompassTracking();
             
             locationWatch = navigator.geolocation.watchPosition(
                 (position) => {
@@ -2030,22 +2036,20 @@
                             lastPosition.lat, lastPosition.lng,
                             pos.lat, pos.lng
                         );
-                        const timeDiff = (Date.now() - (position.timestamp || Date.now())) / 1000;
+                        const timeDiff = 1; // ثانية واحدة بين القراءات
                         if (timeDiff > 0) {
                             currentSpeed = (distance / timeDiff) * 3600; // كم/ساعة
                         }
+                        
+                        // حساب الاتجاه
+                        currentHeading = calculateBearing(
+                            lastPosition.lat, lastPosition.lng,
+                            pos.lat, pos.lng
+                        );
                     }
                     
                     // تحديث علامة السائق
-                    if (driverMarker) {
-                        driverMarker.setPosition(pos);
-                        
-                        // استخدام بيانات الاتجاه من المستشعرات
-                        if (deviceOrientationData) {
-                            driverMarker.setRotation(deviceOrientationData.alpha);
-                            currentHeading = deviceOrientationData.alpha;
-                        }
-                    }
+                    updateDriverMarker(pos, currentHeading);
                     
                     // تحديث آخر موقع
                     lastPosition = pos;
@@ -2055,7 +2059,7 @@
                     
                     // إذا كان في وضع التنقل، تحديث المسار
                     if (isNavigating && currentNavigationOrder) {
-                        updateNavigationRoute(pos);
+                        updateNavigationProgress(pos);
                     }
                     
                     // تحديث الموقع على السيرفر
@@ -2077,31 +2081,10 @@
             document.getElementById('tracking-info').classList.add('show');
         }
         
-        function startCompassTracking() {
-            if ('DeviceOrientationEvent' in window) {
-                window.addEventListener('deviceorientation', handleDeviceOrientation);
-            } else {
-                console.log('Device orientation not supported');
-            }
-        }
-        
-        function handleDeviceOrientation(event) {
-            deviceOrientationData = {
-                alpha: event.alpha,  // الاتجاه بالنسبة للشمال (0-360)
-                beta: event.beta,    // الميل للأمام/الخلف
-                gamma: event.gamma   // الميل لليمين/اليسار
-            };
-        }
-        
         function stopLiveTracking() {
             if (locationWatch) {
                 navigator.geolocation.clearWatch(locationWatch);
                 locationWatch = null;
-            }
-            
-            if (compassWatch) {
-                window.removeEventListener('deviceorientation', handleDeviceOrientation);
-                compassWatch = null;
             }
             
             liveTracking = false;
@@ -2165,66 +2148,47 @@
             // إظهار لوحة التنقل
             showNavigationPanel(order);
             
-            // إظهار زر فتح خرائط جوجل
-            document.getElementById('direct-navigation-btn').style.display = 'block';
+            // طلب موقع السائق إذا لم يكن موجوداً
+            if (!lastPosition) {
+                await locateDriver();
+                if (!lastPosition) {
+                    showError('موقع السائق غير متوفر', 'يجب تفعيل خدمات الموقع');
+                    return;
+                }
+            }
+            
+            // استخراج الإحداثيات من رابط جوجل ماب
+            const destinationCoords = extractCoordinatesFromGoogleMapsUrl(order.location);
+            if (!destinationCoords) {
+                showError('خطأ في الإحداثيات', 'تعذر استخراج إحداثيات الموقع من الرابط');
+                return;
+            }
             
             // بدء التتبع الحي إذا لم يكن مفعلاً
             if (!liveTracking) {
                 startLiveTracking();
             }
             
-            // تحليل الرابط للحصول على الإحداثيات
-            const coords = parseGoogleMapsUrl(order.location);
-            if (coords) {
-                // إذا كانت الإحداثيات متوفرة، استخدمها للتنقل الداخلي
-                if (lastPosition) {
-                    calculateRoute(lastPosition, coords);
-                }
-            }
+            // حساب المسار
+            calculateRoute(lastPosition, destinationCoords);
             
-            // عرض خيار فتح خرائط جوجل
-            Swal.fire({
-                title: 'بدء التنقل',
-                html: `
-                    <div style="text-align: center; padding: 10px;">
-                        <div style="font-size: 1.1rem; margin-bottom: 15px;">
-                            <i class="fas fa-directions" style="color: #4285F4; font-size: 2rem;"></i>
-                            <div style="margin-top: 10px;">جاهز للبدء في التنقل نحو العميل:</div>
-                            <div style="font-weight: bold; font-size: 1.2rem; margin: 10px 0;">${order.customerName || 'العميل'}</div>
-                        </div>
-                        <div style="background: var(--card-light); padding: 10px; border-radius: 8px; margin: 15px 0; font-size: 0.9rem;">
-                            <div style="color: var(--primary); margin-bottom: 5px;"><i class="fas fa-map-marker-alt"></i> رابط الموقع:</div>
-                            <div style="word-break: break-all; direction: ltr; text-align: left;">${order.location.substring(0, 50)}...</div>
-                        </div>
-                    </div>
-                `,
-                icon: 'info',
-                showCancelButton: true,
-                confirmButtonText: 'فتح خرائط جوجل',
-                cancelButtonText: 'التنقل داخل التطبيق',
-                background: '#222',
-                color: '#fff',
-                allowOutsideClick: false
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    openGoogleMapsNavigation();
-                } else {
-                    // استخدام التنقل داخل التطبيق
-                    if (coords && lastPosition) {
-                        calculateRoute(lastPosition, coords);
-                    }
-                }
-            });
+            // إضافة علامة الوجهة
+            addDestinationMarker(destinationCoords, order);
         }
         
-        function parseGoogleMapsUrl(url) {
+        function extractCoordinatesFromGoogleMapsUrl(url) {
             try {
-                // محاولة استخراج الإحداثيات من رابط جوجل ماب
+                // تحسين استخراج الإحداثيات من روابط جوجل ماب
                 const patterns = [
+                    // النمط الجديد: @29.3116603,47.9345531,17z
                     /@(-?\d+\.\d+),(-?\d+\.\d+)/,
+                    // النمط القديم: ?q=29.3116603,47.9345531
                     /[?&]q=(-?\d+\.\d+)[, ]+(-?\d+\.\d+)/,
+                    // النمط البديل: !3d29.3116603!4d47.9345531
                     /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/,
-                    /place\/([^/@]+)\/@(-?\d+\.\d+),(-?\d+\.\d+)/,
+                    // رابط المكان: place/.../@29.3116603,47.9345531
+                    /place\/[^/@]+\/@(-?\d+\.\d+),(-?\d+\.\d+)/,
+                    // إحداثيات مباشرة
                     /(-?\d{1,2}\.\d{5,}),\s*(-?\d{1,3}\.\d{5,})/
                 ];
                 
@@ -2236,20 +2200,19 @@
                         if (pattern.toString().includes('!3d')) {
                             lat = parseFloat(match[1]);
                             lng = parseFloat(match[2]);
-                        } else if (pattern.toString().includes('place/')) {
-                            lat = parseFloat(match[2]);
-                            lng = parseFloat(match[3]);
                         } else {
                             lat = parseFloat(match[1]);
                             lng = parseFloat(match[2]);
                         }
                         
-                        if (!isNaN(lat) && !isNaN(lng)) {
+                        if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+                            console.log('✅ Coordinates extracted:', lat, lng);
                             return { lat, lng };
                         }
                     }
                 }
                 
+                console.error('❌ No coordinates found in URL:', url);
                 return null;
             } catch (error) {
                 console.error('Error parsing Google Maps URL:', error);
@@ -2257,46 +2220,59 @@
             }
         }
         
-        function openGoogleMapsNavigation() {
-            if (!currentNavigationOrder || !currentNavigationOrder.location) {
-                showError('خطأ', 'لا يوجد رابط موقع للعميل');
-                return;
+        function addDestinationMarker(coords, order) {
+            // إزالة علامات الوجهة السابقة
+            if (window.destinationMarker) {
+                window.destinationMarker.setMap(null);
             }
             
-            // تحويل الرابط ليكون مناسباً للتنقل
-            let navigationUrl = currentNavigationOrder.location;
+            window.destinationMarker = new google.maps.Marker({
+                position: coords,
+                map: googleMap,
+                icon: {
+                    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                        <svg xmlns="http://www.w3.org/2000/svg" width="50" height="70" viewBox="0 0 50 70">
+                            <circle cx="25" cy="25" r="18" fill="#00c851" stroke="#ffffff" stroke-width="3"/>
+                            <path d="M25,40 L25,60 L30,65 L20,65 L25,60 Z" fill="#00c851" stroke="#ffffff" stroke-width="2"/>
+                            <text x="25" y="25" text-anchor="middle" dy=".3em" fill="#ffffff" font-family="Arial" font-weight="bold" font-size="16">🏠</text>
+                        </svg>
+                    `),
+                    scaledSize: new google.maps.Size(50, 70),
+                    anchor: new google.maps.Point(25, 70)
+                },
+                title: `وجهة الطلب #${order.id} - ${order.customerName || 'العميل'}`
+            });
             
-            // إذا كان الرابط من خرائط جوجل، قم بتعديله لفتح تطبيق التنقل
-            if (navigationUrl.includes('google.com/maps')) {
-                // إضافة بارامترات التنقل إذا لم تكن موجودة
-                if (!navigationUrl.includes('/dir/')) {
-                    navigationUrl = navigationUrl.replace('/place/', '/dir/current/');
-                    navigationUrl += '/data=!4m2!4m1!3e0';
-                }
-            }
+            // إضافة نافذة معلومات
+            const infoWindow = new google.maps.InfoWindow({
+                content: `
+                    <div style="font-family: 'Cairo', sans-serif; padding: 15px; min-width: 250px; direction: rtl;">
+                        <h3 style="color: #00c851; margin: 0 0 10px 0; text-align: right;">
+                            <i class="fas fa-home"></i> وجهة التوصيل
+                        </h3>
+                        <div style="margin-bottom: 10px;">
+                            <div><strong>العميل:</strong> ${order.customerName || 'العميل'}</div>
+                            <div><strong>رقم الطلب:</strong> #${order.id}</div>
+                            <div><strong>العنوان:</strong> ${order.addressDetails || 'غير محدد'}</div>
+                        </div>
+                    </div>
+                `
+            });
             
-            // فتح الرابط في علامة تبويب جديدة
-            window.open(navigationUrl, '_blank');
-            
-            // عرض رسالة تأكيد
-            Swal.fire({
-                icon: 'success',
-                title: 'جاري فتح خرائط جوجل',
-                text: 'سيتم فتح تطبيق خرائط جوجل للتنقل',
-                timer: 2000,
-                showConfirmButton: false,
-                background: '#222',
-                color: '#fff'
+            window.destinationMarker.addListener('click', () => {
+                infoWindow.open(googleMap, window.destinationMarker);
             });
         }
         
         function calculateRoute(origin, destination) {
+            console.log('🚗 Calculating route from:', origin, 'to:', destination);
+            
             const request = {
                 origin: origin,
                 destination: destination,
                 travelMode: google.maps.TravelMode.DRIVING,
                 unitSystem: google.maps.UnitSystem.METRIC,
-                provideRouteAlternatives: true,
+                provideRouteAlternatives: false,
                 drivingOptions: {
                     departureTime: new Date(),
                     trafficModel: google.maps.TrafficModel.BEST_GUESS
@@ -2305,6 +2281,9 @@
             
             directionsService.route(request, (response, status) => {
                 if (status === google.maps.DirectionsStatus.OK) {
+                    console.log('✅ Route calculated successfully');
+                    
+                    // عرض المسار
                     directionsRenderer.setDirections(response);
                     currentRoute = response;
                     
@@ -2314,8 +2293,8 @@
                     // تحديث معلومات التنقل
                     updateNavigationInfo(leg);
                     
-                    // إظهار تعليمات التنقل النشطة
-                    showActiveNavigation(leg);
+                    // تحديث تعليمات المسار
+                    updateRouteInstructions(leg.steps);
                     
                     // تكبير الخريطة لتناسب المسار
                     const bounds = new google.maps.LatLngBounds();
@@ -2327,94 +2306,162 @@
                     updateRouteProgress(leg);
                     
                 } else {
-                    console.error('Error calculating route:', status);
+                    console.error('❌ Error calculating route:', status);
                     showError('خطأ في حساب المسار', 'تعذر حساب المسار إلى الوجهة');
                     
-                    // اقتراح فتح خرائط جوجل مباشرةً
-                    Swal.fire({
-                        title: 'استخدام خرائط جوجل مباشرةً',
-                        text: 'تعذر حساب المسار داخل التطبيق. هل تريد فتح خرائط جوجل مباشرةً؟',
-                        icon: 'question',
-                        showCancelButton: true,
-                        confirmButtonText: 'نعم، افتح خرائط جوجل',
-                        cancelButtonText: 'إلغاء',
-                        background: '#222',
-                        color: '#fff'
-                    }).then((result) => {
-                        if (result.isConfirmed && currentNavigationOrder) {
-                            openGoogleMapsNavigation();
-                        }
-                    });
+                    // محاولة بديلة: رسم خط مباشر بين النقطتين
+                    drawDirectRoute(origin, destination);
                 }
             });
         }
         
-        function updateNavigationRoute(currentPosition) {
-            if (!currentNavigationOrder) return;
+        function drawDirectRoute(origin, destination) {
+            // رسم خط مباشر كبديل
+            const directRoute = [
+                { lat: origin.lat, lng: origin.lng },
+                { lat: destination.lat, lng: destination.lng }
+            ];
             
-            const destinationCoords = parseGoogleMapsUrl(currentNavigationOrder.location);
-            if (!destinationCoords) return;
-            
-            // تحديث المسار فقط إذا تغير الموقع بشكل كبير (أكثر من 50 متر)
-            if (lastPosition) {
-                const distance = calculateDistance(
-                    lastPosition.lat, lastPosition.lng,
-                    currentPosition.lat, currentPosition.lng
-                );
-                
-                if (distance > 0.05) { // 50 متر
-                    calculateRoute(currentPosition, destinationCoords);
-                }
+            if (routePolyline) {
+                routePolyline.setMap(null);
             }
+            
+            routePolyline = new google.maps.Polyline({
+                path: directRoute,
+                geodesic: true,
+                strokeColor: '#ff6600',
+                strokeOpacity: 0.7,
+                strokeWeight: 4,
+                map: googleMap
+            });
+            
+            // حساب المسافة التقريبية
+            const distance = calculateDistance(origin.lat, origin.lng, destination.lat, destination.lng);
+            const duration = distance * 2; // افتراض متوسط سرعة 30 كم/س
+            
+            // تحديث معلومات التنقل
+            document.getElementById('nav-distance').textContent = distance.toFixed(1) + ' كم';
+            document.getElementById('nav-duration').textContent = Math.round(duration) + ' دقيقة';
+            
+            // إظهار رسالة للمستخدم
+            Swal.fire({
+                icon: 'info',
+                title: 'مسار مباشر',
+                text: 'تم رسم مسار مباشر لأن خدمة الاتجاهات غير متوفرة. يرجى استخدام خرائط جوجل للتعليمات التفصيلية.',
+                timer: 3000,
+                showConfirmButton: false,
+                background: '#222',
+                color: '#fff'
+            });
         }
         
         function updateNavigationInfo(leg) {
             document.getElementById('nav-distance').textContent = leg.distance.text;
             document.getElementById('nav-duration').textContent = leg.duration.text;
             
-            // حساب السرعة المتوقعة
-            const distanceInKm = leg.distance.value / 1000;
-            const durationInHours = leg.duration.value / 3600;
-            const averageSpeed = distanceInKm / durationInHours;
+            // تحديث شريط التقدم
+            const progressElement = document.getElementById('nav-progress');
+            const progressText = document.getElementById('nav-progress-text');
             
-            // إضافة معلومات السرعة المتوقعة
-            const navInfo = document.querySelector('.navigation-info');
-            const existingSpeed = document.getElementById('nav-speed');
-            if (!existingSpeed) {
-                const speedItem = document.createElement('div');
-                speedItem.className = 'navigation-item';
-                speedItem.id = 'nav-speed';
-                speedItem.innerHTML = `
-                    <div class="navigation-label">
-                        <i class="fas fa-tachometer-alt"></i>
-                        السرعة المتوقعة
-                    </div>
-                    <div class="navigation-value">${averageSpeed.toFixed(0)} كم/س</div>
-                `;
-                navInfo.appendChild(speedItem);
-            }
+            progressElement.style.width = '0%';
+            progressText.textContent = '0%';
+            
+            // إظهار الإرشادات النشطة
+            showActiveNavigation(leg);
         }
         
-        function updateRouteProgress(leg) {
-            const totalDistance = leg.distance.value;
-            let traveledDistance = 0;
+        function updateRouteInstructions(steps) {
+            routeInstructions = steps;
+            currentStepIndex = 0;
             
-            if (lastPosition) {
-                const destCoords = parseGoogleMapsUrl(currentNavigationOrder.location);
-                if (destCoords) {
-                    const remainingDistance = calculateDistance(
-                        lastPosition.lat, lastPosition.lng,
-                        destCoords.lat, destCoords.lng
-                    ) * 1000; // تحويل إلى متر
+            const container = document.getElementById('route-steps-container');
+            container.innerHTML = '';
+            
+            steps.forEach((step, index) => {
+                const stepDiv = document.createElement('div');
+                stepDiv.className = 'instruction-step';
+                stepDiv.innerHTML = `
+                    <div class="step-icon">${index + 1}</div>
+                    <div class="step-text">${step.instructions.replace(/<[^>]*>/g, '')}</div>
+                    <div class="step-distance">${step.distance.text}</div>
+                `;
+                container.appendChild(stepDiv);
+            });
+        }
+        
+        function toggleRouteInstructions() {
+            const instructionsPanel = document.getElementById('route-instructions');
+            instructionsPanel.classList.toggle('show');
+        }
+        
+        function updateNavigationProgress(currentPosition) {
+            if (!currentRoute || !currentNavigationOrder) return;
+            
+            const destinationCoords = extractCoordinatesFromGoogleMapsUrl(currentNavigationOrder.location);
+            if (!destinationCoords) return;
+            
+            const route = currentRoute.routes[0];
+            const leg = route.legs[0];
+            
+            // حساب المسافة المتبقية
+            const remainingDistance = calculateDistance(
+                currentPosition.lat, currentPosition.lng,
+                destinationCoords.lat, destinationCoords.lng
+            );
+            
+            const totalDistance = leg.distance.value / 1000; // تحويل إلى كم
+            const traveledDistance = totalDistance - remainingDistance;
+            const progressPercentage = Math.min(100, Math.max(0, (traveledDistance / totalDistance) * 100));
+            
+            // تحديث شريط التقدم
+            const progressElement = document.getElementById('nav-progress');
+            const progressText = document.getElementById('nav-progress-text');
+            
+            progressElement.style.width = `${progressPercentage}%`;
+            progressText.textContent = `${progressPercentage.toFixed(0)}%`;
+            
+            // تحديث المسافة والوقت المتبقي
+            const remainingTime = (remainingDistance / 30) * 60; // افتراض سرعة 30 كم/س
+            
+            document.getElementById('nav-remaining-distance').textContent = remainingDistance.toFixed(1) + ' كم';
+            document.getElementById('nav-remaining-time').textContent = Math.round(remainingTime) + ' دقيقة';
+            
+            // تحديث الخطوة الحالية في الإرشادات
+            updateCurrentStep(currentPosition);
+        }
+        
+        function updateCurrentStep(currentPosition) {
+            if (routeInstructions.length === 0) return;
+            
+            // البحث عن أقرب خطوة
+            let closestStepIndex = 0;
+            let minDistance = Infinity;
+            
+            routeInstructions.forEach((step, index) => {
+                const stepPath = step.path;
+                if (stepPath && stepPath.length > 0) {
+                    const stepPoint = stepPath[Math.floor(stepPath.length / 2)]; // نقطة في منتصف الخطوة
+                    const distance = calculateDistance(
+                        currentPosition.lat, currentPosition.lng,
+                        stepPoint.lat(), stepPoint.lng()
+                    );
                     
-                    traveledDistance = totalDistance - remainingDistance;
-                    const progressPercentage = Math.min(100, Math.max(0, (traveledDistance / totalDistance) * 100));
-                    
-                    const progressElement = document.getElementById('nav-progress');
-                    const progressText = document.getElementById('nav-progress-text');
-                    
-                    progressElement.style.width = `${progressPercentage}%`;
-                    progressText.textContent = `${progressPercentage.toFixed(0)}%`;
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        closestStepIndex = index;
+                    }
+                }
+            });
+            
+            if (closestStepIndex !== currentStepIndex) {
+                currentStepIndex = closestStepIndex;
+                
+                // تحديث التعليمات النشطة
+                const currentStep = routeInstructions[currentStepIndex];
+                if (currentStep) {
+                    document.getElementById('nav-instruction').textContent = 
+                        currentStep.instructions.replace(/<[^>]*>/g, '');
+                    document.getElementById('nav-next-distance').textContent = currentStep.distance.text;
                 }
             }
         }
@@ -2425,27 +2472,6 @@
             
             document.getElementById('nav-order-id').textContent = '#' + order.id;
             document.getElementById('nav-customer').textContent = order.customerName || 'العميل';
-            
-            // إضافة رابط الموقع
-            const navInfo = document.querySelector('.navigation-info');
-            const existingLink = document.getElementById('nav-link');
-            if (!existingLink && order.location) {
-                const linkItem = document.createElement('div');
-                linkItem.className = 'navigation-item';
-                linkItem.id = 'nav-link';
-                linkItem.innerHTML = `
-                    <div class="navigation-label">
-                        <i class="fas fa-link"></i>
-                        رابط الموقع
-                    </div>
-                    <div class="navigation-value" style="font-size: 0.8rem;">
-                        <a href="${order.location}" target="_blank" style="color: #4285F4; text-decoration: none;">
-                            <i class="fab fa-google"></i> خرائط جوجل
-                        </a>
-                    </div>
-                `;
-                navInfo.appendChild(linkItem);
-            }
             
             // تحديث زر الاتصال
             const callBtn = document.getElementById('nav-call-btn');
@@ -2464,45 +2490,46 @@
             // تحديث معلومات الخطوة الأولى
             if (leg.steps && leg.steps.length > 0) {
                 const firstStep = leg.steps[0];
-                updateActiveNavigationStep(firstStep, leg);
+                document.getElementById('nav-instruction').textContent = 
+                    firstStep.instructions.replace(/<[^>]*>/g, '');
+                document.getElementById('nav-next-distance').textContent = firstStep.distance.text;
+                document.getElementById('nav-remaining-distance').textContent = leg.distance.text;
+                document.getElementById('nav-remaining-time').textContent = leg.duration.text;
             }
-        }
-        
-        function updateActiveNavigationStep(step, leg) {
-            // تنظيف تعليمات HTML من النص
-            const cleanInstructions = step.instructions.replace(/<[^>]*>/g, '');
-            
-            document.getElementById('nav-instruction').textContent = cleanInstructions;
-            document.getElementById('nav-next-distance').textContent = step.distance.text;
-            document.getElementById('nav-remaining-distance').textContent = leg.distance.text;
-            document.getElementById('nav-remaining-time').textContent = leg.duration.text;
         }
         
         function endNavigation() {
             isNavigating = false;
             currentNavigationOrder = null;
             currentRoute = null;
+            routeInstructions = [];
+            currentStepIndex = 0;
             
             // إخفاء لوحات التنقل
             document.getElementById('navigation-panel').classList.remove('active');
             document.getElementById('active-navigation').classList.remove('show');
-            document.getElementById('direct-navigation-btn').style.display = 'none';
+            document.getElementById('route-instructions').classList.remove('show');
             
             // إزالة المسار
             directionsRenderer.setDirections({routes: []});
+            
+            // إزالة خط المسار المباشر
+            if (routePolyline) {
+                routePolyline.setMap(null);
+                routePolyline = null;
+            }
+            
+            // إزالة علامة الوجهة
+            if (window.destinationMarker) {
+                window.destinationMarker.setMap(null);
+                window.destinationMarker = null;
+            }
             
             // إعادة تعيين الخريطة
             if (lastPosition) {
                 googleMap.setCenter(lastPosition);
                 googleMap.setZoom(15);
             }
-            
-            // إزالة العناصر الديناميكية
-            const navSpeed = document.getElementById('nav-speed');
-            if (navSpeed) navSpeed.remove();
-            
-            const navLink = document.getElementById('nav-link');
-            if (navLink) navLink.remove();
             
             // إذا كانت حالة السائق "busy" يتم التحويل إلى "online" بعد إنهاء التنقل
             if (driverStatus === 'busy') {
@@ -2534,7 +2561,7 @@
             let hasValidLocation = false;
             
             ordersToShow.forEach(order => {
-                const coords = parseGoogleMapsUrl(order.location);
+                const coords = extractCoordinatesFromGoogleMapsUrl(order.location);
                 if (coords) {
                     bounds.extend(coords);
                     hasValidLocation = true;
@@ -2554,7 +2581,7 @@
             const ordersToShow = [...activeOrders, ...pickedOrders];
             
             ordersToShow.forEach(order => {
-                const coords = parseGoogleMapsUrl(order.location);
+                const coords = extractCoordinatesFromGoogleMapsUrl(order.location);
                 if (!coords) return;
                 
                 let iconColor, iconText;
@@ -2598,14 +2625,6 @@
                                 <div><strong>الهاتف:</strong> ${order.phone || 'غير متوفر'}</div>
                                 <div><strong>العنوان:</strong> ${order.addressDetails || 'غير محدد'}</div>
                             </div>
-                            <div style="background: #f5f5f5; padding: 8px; border-radius: 6px; margin-top: 10px; font-size: 12px;">
-                                <div style="color: #666; margin-bottom: 4px;">رابط الموقع:</div>
-                                <div style="word-break: break-all; direction: ltr; font-size: 11px;">
-                                    <a href="${order.location}" target="_blank" style="color: #4285F4;">
-                                        ${order.location.substring(0, 40)}...
-                                    </a>
-                                </div>
-                            </div>
                             <div style="margin-top: 15px; display: flex; gap: 10px;">
                                 <button onclick="startNavigation(${order.id})" style="background: #ff6600; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; flex: 1;">
                                     <i class="fas fa-directions"></i> بدء التنقل
@@ -2627,7 +2646,7 @@
         }
         
         // ==============================================
-        // ORDER ACTIONS
+        // ORDER ACTIONS (تظل كما هي)
         // ==============================================
         async function pickOrder(orderId) {
             try {
@@ -2869,14 +2888,14 @@
                 });
             }
             
-            const coords = parseGoogleMapsUrl(order.location);
+            const coords = extractCoordinatesFromGoogleMapsUrl(order.location);
             const locationInfo = order.location ? `
-                <div style="background: rgba(66, 133, 244, 0.1); padding: 10px; border-radius: 8px; margin: 10px 0; font-size: 0.9rem;">
-                    <div style="color: #4285F4; font-weight: bold; margin-bottom: 5px; display: flex; align-items: center; gap: 5px;">
-                        <i class="fab fa-google"></i> رابط موقع العميل:
+                <div style="background: rgba(255, 102, 0, 0.1); padding: 10px; border-radius: 8px; margin: 10px 0; font-size: 0.9rem;">
+                    <div style="color: var(--primary); font-weight: bold; margin-bottom: 5px; display: flex; align-items: center; gap: 5px;">
+                        <i class="fas fa-map-marker-alt"></i> موقع العميل:
                     </div>
                     <div style="word-break: break-all; direction: ltr; text-align: left; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px; font-size: 0.8rem;">
-                        <a href="${order.location}" target="_blank" style="color: #8ab4f8; text-decoration: none;">
+                        <a href="${order.location}" target="_blank" style="color: #ff944d; text-decoration: none;">
                             ${order.location.substring(0, 60)}...
                         </a>
                     </div>
@@ -2952,8 +2971,8 @@
                         ` : ''}
                         
                         ${order.location ? `
-                            <button onclick="startNavigation(${order.id}); closeOrderModal();" style="flex: 1; background: linear-gradient(135deg, #4285F4 0%, #0d47a1 100%); color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer;">
-                                <i class="fab fa-google"></i> بدء التنقل
+                            <button onclick="startNavigation(${order.id}); closeOrderModal();" style="flex: 1; background: linear-gradient(135deg, #ff6600 0%, #cc5200 100%); color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer;">
+                                <i class="fas fa-directions"></i> بدء التنقل
                             </button>
                         ` : ''}
                     </div>
@@ -3000,58 +3019,7 @@
         }
         
         // ==============================================
-        // SHEET DRAG FUNCTIONS
-        // ==============================================
-        function initSheetDrag() {
-            const sheet = document.getElementById('orders-sheet');
-            const dragHandle = document.getElementById('drag-handle');
-            
-            sheetExpandedHeight = window.innerHeight * 0.55;
-            document.documentElement.style.setProperty('--sheet-expanded-height', `${sheetExpandedHeight}px`);
-            
-            dragHandle.addEventListener('click', toggleSheet);
-            dragHandle.addEventListener('touchstart', handleTouchStart);
-            document.addEventListener('touchmove', handleTouchMove);
-            document.addEventListener('touchend', handleTouchEnd);
-            
-            window.addEventListener('resize', updateSheetHeight);
-        }
-        
-        function handleTouchStart(e) {
-            const sheet = document.getElementById('orders-sheet');
-            sheet.style.transition = 'none';
-        }
-        
-        function handleTouchMove(e) {
-            // منع التمرير الافتراضي
-            e.preventDefault();
-        }
-        
-        function handleTouchEnd(e) {
-            const sheet = document.getElementById('orders-sheet');
-            sheet.style.transition = 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
-        }
-        
-        function toggleSheet() {
-            const sheet = document.getElementById('orders-sheet');
-            if (sheet.classList.contains('expanded')) {
-                sheet.classList.remove('expanded');
-                sheet.classList.add('collapsed');
-                isSheetExpanded = false;
-            } else {
-                sheet.classList.add('expanded');
-                sheet.classList.remove('collapsed');
-                isSheetExpanded = true;
-            }
-        }
-        
-        function updateSheetHeight() {
-            sheetExpandedHeight = window.innerHeight * 0.55;
-            document.documentElement.style.setProperty('--sheet-expanded-height', `${sheetExpandedHeight}px`);
-        }
-        
-        // ==============================================
-        // REST OF THE FUNCTIONS (from original code)
+        // REST OF THE FUNCTIONS (تظل كما هي)
         // ==============================================
         async function testAPIConnection() {
             try {
@@ -3429,14 +3397,14 @@
                                     <i class="fas fa-info-circle"></i> تفاصيل
                                 </button>
                                 <button class="order-action-btn action-navigate" onclick="event.stopPropagation(); startNavigation(${order.id})">
-                                    <i class="fab fa-google"></i> بدء التنقل
+                                    <i class="fas fa-directions"></i> بدء التنقل
                                 </button>
                             ` : order.status === 'Picked' ? `
                                 <button class="order-action-btn action-deliver" onclick="event.stopPropagation(); markDelivered(${order.id})">
                                     <i class="fas fa-check-circle"></i> تم التوصيل
                                 </button>
                                 <button class="order-action-btn action-navigate" onclick="event.stopPropagation(); startNavigation(${order.id})">
-                                    <i class="fab fa-google"></i> تحديث المسار
+                                    <i class="fas fa-directions"></i> تحديث المسار
                                 </button>
                                 <button class="order-action-btn action-call" onclick="event.stopPropagation(); callCustomer(${order.id})">
                                     <i class="fas fa-phone"></i> اتصل
@@ -3461,7 +3429,7 @@
                 event.currentTarget.classList.add('active');
                 
                 // إظهار الطلب على الخريطة
-                const coords = parseGoogleMapsUrl(order.location);
+                const coords = extractCoordinatesFromGoogleMapsUrl(order.location);
                 if (coords) {
                     googleMap.setCenter(coords);
                     googleMap.setZoom(16);
@@ -3582,6 +3550,57 @@
         }
         
         // ==============================================
+        // SHEET DRAG FUNCTIONS
+        // ==============================================
+        function initSheetDrag() {
+            const sheet = document.getElementById('orders-sheet');
+            const dragHandle = document.getElementById('drag-handle');
+            
+            sheetExpandedHeight = window.innerHeight * 0.55;
+            document.documentElement.style.setProperty('--sheet-expanded-height', `${sheetExpandedHeight}px`);
+            
+            dragHandle.addEventListener('click', toggleSheet);
+            dragHandle.addEventListener('touchstart', handleTouchStart);
+            document.addEventListener('touchmove', handleTouchMove);
+            document.addEventListener('touchend', handleTouchEnd);
+            
+            window.addEventListener('resize', updateSheetHeight);
+        }
+        
+        function handleTouchStart(e) {
+            const sheet = document.getElementById('orders-sheet');
+            sheet.style.transition = 'none';
+        }
+        
+        function handleTouchMove(e) {
+            // منع التمرير الافتراضي
+            e.preventDefault();
+        }
+        
+        function handleTouchEnd(e) {
+            const sheet = document.getElementById('orders-sheet');
+            sheet.style.transition = 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
+        }
+        
+        function toggleSheet() {
+            const sheet = document.getElementById('orders-sheet');
+            if (sheet.classList.contains('expanded')) {
+                sheet.classList.remove('expanded');
+                sheet.classList.add('collapsed');
+                isSheetExpanded = false;
+            } else {
+                sheet.classList.add('expanded');
+                sheet.classList.remove('collapsed');
+                isSheetExpanded = true;
+            }
+        }
+        
+        function updateSheetHeight() {
+            sheetExpandedHeight = window.innerHeight * 0.55;
+            document.documentElement.style.setProperty('--sheet-expanded-height', `${sheetExpandedHeight}px`);
+        }
+        
+        // ==============================================
         // EVENT LISTENERS
         // ==============================================
         window.addEventListener('online', () => {
@@ -3615,7 +3634,6 @@
             if (locationInterval) clearInterval(locationInterval);
             if (heartbeatInterval) clearInterval(heartbeatInterval);
             if (locationWatch) navigator.geolocation.clearWatch(locationWatch);
-            if (compassWatch) window.removeEventListener('deviceorientation', handleDeviceOrientation);
         });
     </script>
 </body>
