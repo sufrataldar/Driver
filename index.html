@@ -15,9 +15,6 @@
     <!-- Leaflet Routing Machine CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
     
-    <!-- Google Maps API -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDNEVRn7v4RC-RkSf6Wsw8uYFGV3101TGI&callback=Function.prototype&libraries=places&language=ar&region=KW"></script>
-    
     <style>
         :root {
             --primary: #ff6600;
@@ -609,7 +606,7 @@
             gap: 6px;
         }
         
-        /* صف أزرار الطلب - تم التعديل لإضافة زر ثالث */
+        /* صف أزرار الطلب */
         .order-actions-row {
             display: flex;
             gap: 10px;
@@ -1243,67 +1240,55 @@
             color: var(--text-gray);
         }
         
-        /* Google Maps Modal - NEW */
-        .google-maps-modal {
+        /* ========================================= */
+        /* خرائط جوجل داخل التطبيق - نسخة معدلة */
+        /* ========================================= */
+        .embedded-maps-container {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.95);
+            background: var(--darker);
             z-index: 3000;
             display: none;
-            align-items: center;
-            justify-content: center;
-            padding: 10px;
-            animation: fadeIn 0.3s ease;
+            flex-direction: column;
         }
         
-        .google-maps-modal.active {
+        .embedded-maps-container.active {
             display: flex;
         }
         
-        .google-maps-modal-content {
-            background: linear-gradient(135deg, var(--darker) 0%, #1a1a1a 100%);
-            border-radius: 20px;
-            width: 100%;
-            max-width: 900px;
-            max-height: 90vh;
-            border: 2px solid var(--primary);
-            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
-            overflow: hidden;
-            animation: modalSlideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        
-        .google-maps-header {
+        .embedded-maps-header {
             padding: 20px;
             background: var(--card);
             border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-shrink: 0;
         }
         
-        .google-maps-header h3 {
+        .embedded-maps-header h3 {
             font-size: 1.4rem;
             font-weight: 900;
             color: var(--primary);
             margin: 0;
         }
         
-        .google-maps-body {
-            padding: 0;
-            height: 600px;
+        .embedded-maps-body {
+            flex: 1;
             position: relative;
+            overflow: hidden;
         }
         
-        #google-map-container {
+        .embedded-maps-iframe {
             width: 100%;
             height: 100%;
-            border-radius: 0 0 20px 20px;
+            border: none;
         }
         
-        .maps-controls {
+        .embedded-maps-controls {
             position: absolute;
             bottom: 20px;
             right: 20px;
@@ -1313,7 +1298,7 @@
             gap: 10px;
         }
         
-        .maps-control-btn {
+        .embedded-maps-btn {
             width: 50px;
             height: 50px;
             border-radius: 50%;
@@ -1329,62 +1314,89 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
         
-        .maps-control-btn:active {
+        .embedded-maps-btn:active {
             background: var(--primary);
             color: #000;
             border-color: var(--primary);
             transform: scale(0.9);
         }
         
-        .map-instructions {
+        .maps-loading {
             position: absolute;
-            top: 20px;
-            right: 20px;
-            left: 20px;
-            background: rgba(18, 18, 18, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 12px;
-            padding: 15px;
-            border: 2px solid var(--primary);
-            z-index: 1000;
-            animation: slideDown 0.3s ease;
-        }
-        
-        .instruction-item {
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--darker);
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 10px;
-            padding: 8px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            justify-content: center;
+            z-index: 1001;
         }
         
-        .instruction-item:last-child {
-            border-bottom: none;
+        .maps-loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 102, 0, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
         }
         
-        .instruction-icon {
-            color: var(--primary);
-            font-size: 1.2rem;
-            min-width: 24px;
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
         
-        .instruction-text {
-            font-size: 0.9rem;
+        .maps-loading-text {
             color: var(--text);
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        /* خرائط جوجل مدمجة داخل iframe */
+        .google-iframe-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        
+        .iframe-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            z-index: 999;
+            pointer-events: none;
+        }
+        
+        /* إخفاء النوافذ المنبثقة */
+        .gm-style-cc,
+        .gmnoprint,
+        .gm-style-mtc {
+            display: none !important;
+        }
+        
+        /* إصلاحات للـ iframe على الموبايل */
+        .embedded-maps-body iframe {
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
         }
         
         /* Responsive adjustments */
         @media (max-width: 768px) {
-            .google-maps-modal-content {
-                max-width: 95vw;
-                max-height: 85vh;
+            .embedded-maps-header {
+                padding: 15px;
             }
             
-            .google-maps-body {
-                height: 400px;
+            .embedded-maps-header h3 {
+                font-size: 1.2rem;
             }
             
-            .maps-control-btn {
+            .embedded-maps-btn {
                 width: 45px;
                 height: 45px;
                 font-size: 1.1rem;
@@ -1475,17 +1487,6 @@
                 padding: 14px;
                 font-size: 0.95rem;
             }
-            
-            .google-maps-modal-content {
-                max-width: 100vw;
-                max-height: 100vh;
-                border-radius: 0;
-                border: none;
-            }
-            
-            .google-maps-body {
-                height: calc(100vh - 130px);
-            }
         }
         
         @media (max-width: 380px) {
@@ -1536,10 +1537,6 @@
             
             .status-modal-content {
                 max-width: 440px;
-            }
-            
-            .google-maps-body {
-                height: 700px;
             }
         }
         
@@ -1698,32 +1695,6 @@
         
         .order-item span:last-child {
             flex: 1;
-        }
-        
-        /* CSS للإحداثيات */
-        .coordinates-info {
-            background: rgba(255, 102, 0, 0.1);
-            padding: 10px;
-            border-radius: 8px;
-            margin-top: 10px;
-            font-size: 0.85rem;
-            border: 1px solid rgba(255, 102, 0, 0.3);
-        }
-        
-        .coordinates-info .title {
-            color: var(--primary);
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        
-        .coordinates-info .coords {
-            font-family: monospace;
-            direction: ltr;
-            text-align: center;
-            padding: 5px;
-            background: rgba(0,0,0,0.3);
-            border-radius: 4px;
-            margin-top: 5px;
         }
         
         /* علامات الخريطة المحسنة */
@@ -1984,42 +1955,36 @@
         </div>
     </div>
     
-    <!-- Google Maps Modal - NEW -->
-    <div class="google-maps-modal" id="google-maps-modal">
-        <div class="google-maps-modal-content">
-            <div class="google-maps-header">
-                <h3 id="google-maps-title">خرائط جوجل</h3>
-                <button class="close-modal" onclick="closeGoogleMapsModal()">
-                    <i class="fas fa-times"></i>
-                </button>
+    <!-- خرائط جوجل مدمجة داخل التطبيق -->
+    <div class="embedded-maps-container" id="embedded-maps-container">
+        <div class="embedded-maps-header">
+            <h3 id="embedded-maps-title">خرائط جوجل</h3>
+            <button class="close-modal" onclick="closeEmbeddedMaps()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="embedded-maps-body">
+            <div class="maps-loading" id="maps-loading">
+                <div class="maps-loading-spinner"></div>
+                <div class="maps-loading-text">جاري تحميل الخرائط...</div>
             </div>
-            <div class="google-maps-body">
-                <div id="google-map-container"></div>
-                <div class="maps-controls">
-                    <button class="maps-control-btn" onclick="centerGoogleMap()" title="مركز الخريطة">
-                        <i class="fas fa-location-crosshairs"></i>
-                    </button>
-                    <button class="maps-control-btn" onclick="toggleGoogleMapType()" title="تغيير نوع الخريطة">
-                        <i class="fas fa-layer-group"></i>
-                    </button>
-                    <button class="maps-control-btn" onclick="getDirections()" title="الحصول على الاتجاهات">
-                        <i class="fas fa-directions"></i>
-                    </button>
-                </div>
-                <div class="map-instructions" id="google-maps-instructions" style="display: none;">
-                    <div class="instruction-item">
-                        <div class="instruction-icon"><i class="fas fa-car"></i></div>
-                        <div class="instruction-text">الخط الأزرق: الطريق المباشر</div>
-                    </div>
-                    <div class="instruction-item">
-                        <div class="instruction-icon"><i class="fas fa-map-marker-alt"></i></div>
-                        <div class="instruction-text">المؤشر البرتقالي: موقعك الحالي</div>
-                    </div>
-                    <div class="instruction-item">
-                        <div class="instruction-icon"><i class="fas fa-flag-checkered"></i></div>
-                        <div class="instruction-text">المؤشر الأحمر: وجهة التوصيل</div>
-                    </div>
-                </div>
+            <iframe 
+                class="embedded-maps-iframe" 
+                id="google-maps-iframe"
+                allow="geolocation"
+                referrerpolicy="no-referrer-when-downgrade"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation allow-top-navigation"
+            ></iframe>
+            <div class="embedded-maps-controls">
+                <button class="embedded-maps-btn" onclick="refreshEmbeddedMaps()" title="تحديث الخريطة">
+                    <i class="fas fa-redo"></i>
+                </button>
+                <button class="embedded-maps-btn" onclick="openDirectionsInEmbeddedMaps()" title="فتح الاتجاهات">
+                    <i class="fas fa-directions"></i>
+                </button>
+                <button class="embedded-maps-btn" onclick="openInExternalMaps()" title="فتح في تطبيق خارجي">
+                    <i class="fas fa-external-link-alt"></i>
+                </button>
             </div>
         </div>
     </div>
@@ -2070,13 +2035,9 @@
         let currentTab = 'active';
         let isConnected = false;
         
-        // Google Maps Variables
-        let googleMap = null;
-        let googleDirectionsService = null;
-        let googleDirectionsRenderer = null;
-        let currentGoogleMapOrder = null;
-        let googleMarkers = [];
-        let googleMapType = 'roadmap';
+        // متغيرات خرائط جوجل المدمجة
+        let currentGoogleMapsUrl = null;
+        let currentOrderForMaps = null;
         
         // متغيرات التحكم بالشريط السفلي
         let isDraggingSheet = false;
@@ -2091,78 +2052,227 @@
         let lastTime = 0;
         
         // ==============================================
-        // 📍 نظام معالجة روابط Google Maps فقط
+        // 🗺️ نظام فتح خرائط جوجل داخل التطبيق
         // ==============================================
 
-        // دالة لفتح رابط Google Maps مباشرة
-        function openGoogleMapsLink(url) {
+        // 1. دالة لمعالجة رابط خرائط جوجل لفتحه داخل iframe
+        function processGoogleMapsUrlForEmbedding(url) {
             if (!url || url.trim() === '') {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'رابط غير متوفر',
-                    text: 'لا يوجد رابط خرائط جوجل متوفر لهذا الطلب',
-                    background: '#222',
-                    color: '#fff'
-                });
-                return;
+                return null;
             }
             
-            // تنظيف الرابط
-            let cleanedUrl = url.trim();
+            let processedUrl = url.trim();
             
-            // التحقق من أن الرابط هو رابط خرائط جوجل
-            if (!cleanedUrl.includes('google.com/maps') && !cleanedUrl.includes('maps.google.com')) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'رابط غير معروف',
-                    text: 'الرابط لا يبدو أنه رابط خرائط جوجل صالح',
-                    background: '#222',
-                    color: '#fff'
-                });
+            // تحويل رابط خرائط جوجل إلى نسخة مبسطة للعرض في iframe
+            // إزالة أي معلمات قد تسبب مشاكل في الـ iframe
+            processedUrl = processedUrl.replace(/\/embed\?/, '/');
+            processedUrl = processedUrl.replace(/\/@/, '/place/');
+            
+            // إضافة معلمات لتحسين العرض في iframe
+            if (processedUrl.includes('google.com/maps')) {
+                // إذا كان رابط مباشر
+                if (!processedUrl.includes('?')) {
+                    processedUrl += '?';
+                } else {
+                    processedUrl += '&';
+                }
+                
+                // إضافة معلمات لتحسين العرض
+                processedUrl += 'output=embed&hl=ar&z=15';
             }
             
-            // فتح الرابط في علامة تبويب جديدة
-            window.open(cleanedUrl, '_blank');
-            
-            // تسجيل الفتح
-            console.log(`✅ فتح رابط خرائط جوجل: ${cleanedUrl.substring(0, 100)}${cleanedUrl.length > 100 ? '...' : ''}`);
+            return processedUrl;
         }
 
-        // دالة لفتح رابط Google Maps مع الاتجاهات من الموقع الحالي
-        function openGoogleMapsWithDirections(url) {
-            if (!url || url.trim() === '') {
+        // 2. فتح خرائط جوجل داخل التطبيق
+        function openGoogleMapsInApp(orderId) {
+            try {
+                console.log(`🗺️ فتح خرائط جوجل داخل التطبيق للطلب: ${orderId}`);
+                
+                const order = [...activeOrders, ...pickedOrders].find(o => o.id == orderId);
+                if (!order) {
+                    throw new Error(`الطلب ${orderId} غير موجود`);
+                }
+                
+                if (!order.location || order.location.trim() === '') {
+                    throw new Error('لا يوجد رابط خرائط جوجل متوفر');
+                }
+                
+                currentOrderForMaps = order;
+                currentGoogleMapsUrl = order.location;
+                
+                // إعداد عنوان النافذة
+                document.getElementById('embedded-maps-title').textContent = 
+                    `خرائط جوجل - طلب #${order.id}`;
+                
+                // إظهار نافذة الخرائط
+                document.getElementById('embedded-maps-container').classList.add('active');
+                document.getElementById('maps-loading').style.display = 'flex';
+                
+                // معالجة الرابط للعرض في iframe
+                const embeddedUrl = processGoogleMapsUrlForEmbedding(order.location);
+                
+                if (embeddedUrl) {
+                    // تحميل الخريطة في iframe
+                    const iframe = document.getElementById('google-maps-iframe');
+                    iframe.src = embeddedUrl;
+                    
+                    // إخفاء شاشة التحميل بعد ثانيتين
+                    setTimeout(() => {
+                        document.getElementById('maps-loading').style.display = 'none';
+                    }, 2000);
+                    
+                    console.log(`✅ تم فتح رابط خرائط جوجل داخل التطبيق: ${embeddedUrl}`);
+                } else {
+                    throw new Error('تعذر معالجة رابط خرائط جوجل');
+                }
+                
+            } catch (error) {
+                console.error('❌ خطأ في فتح خرائط جوجل داخل التطبيق:', error);
+                
+                // إغلاق نافذة الخرائط
+                closeEmbeddedMaps();
+                
                 Swal.fire({
                     icon: 'error',
-                    title: 'رابط غير متوفر',
-                    text: 'لا يوجد رابط خرائط جوجل متوفر',
+                    title: 'خطأ في فتح الخرائط',
+                    text: error.message,
                     background: '#222',
                     color: '#fff'
                 });
-                return;
-            }
-            
-            // تنظيف الرابط
-            let cleanedUrl = url.trim();
-            
-            // محاولة استخراج الإحداثيات من الرابط
-            const coords = extractCoordinatesSimple(cleanedUrl);
-            
-            if (coords && currentLocation) {
-                // إنشاء رابط الاتجاهات مع نقطة البداية الحالية
-                const directionsUrl = `https://www.google.com/maps/dir/?api=1&origin=${currentLocation.lat},${currentLocation.lng}&destination=${coords.lat},${coords.lng}&travelmode=driving&dir_action=navigate`;
-                window.open(directionsUrl, '_blank');
-                console.log(`✅ فتح خرائط جوجل مع الاتجاهات من الموقع الحالي`);
-            } else {
-                // فتح الرابط الأصلي إذا لم نتمكن من استخراج الإحداثيات
-                openGoogleMapsLink(cleanedUrl);
             }
         }
 
-        // دالة بسيطة لاستخراج الإحداثيات (للاستخدام الداخلي فقط)
-        function extractCoordinatesSimple(url) {
+        // 3. إغلاق خرائط جوجل المدمجة
+        function closeEmbeddedMaps() {
+            const container = document.getElementById('embedded-maps-container');
+            const iframe = document.getElementById('google-maps-iframe');
+            
+            // إعادة تعيين iframe
+            iframe.src = 'about:blank';
+            
+            // إخفاء الحاوية
+            container.classList.remove('active');
+            
+            // إعادة إظهار شاشة التحميل
+            document.getElementById('maps-loading').style.display = 'flex';
+            
+            // تنظيف المتغيرات
+            currentGoogleMapsUrl = null;
+            currentOrderForMaps = null;
+            
+            console.log('✅ تم إغلاق خرائط جوجل المدمجة');
+        }
+
+        // 4. تحديث الخريطة
+        function refreshEmbeddedMaps() {
+            const iframe = document.getElementById('google-maps-iframe');
+            const currentSrc = iframe.src;
+            
+            if (currentSrc && currentSrc !== 'about:blank') {
+                iframe.src = currentSrc;
+                console.log('✅ تم تحديث الخريطة');
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تم التحديث',
+                    text: 'تم تحديث الخريطة بنجاح',
+                    timer: 1500,
+                    showConfirmButton: false,
+                    background: '#222',
+                    color: '#fff'
+                });
+            }
+        }
+
+        // 5. فتح الاتجاهات في الخريطة المدمجة
+        function openDirectionsInEmbeddedMaps() {
+            try {
+                if (!currentOrderForMaps || !currentLocation) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'بيانات غير كافية',
+                        text: 'تعذر فتح الاتجاهات. يرجى التحقق من تفعيل خدمة الموقع',
+                        background: '#222',
+                        color: '#fff'
+                    });
+                    return;
+                }
+                
+                // معالجة الرابط لفتح الاتجاهات
+                let directionsUrl = currentGoogleMapsUrl;
+                
+                // محاولة استخراج الإحداثيات من الرابط
+                const coords = extractCoordinatesFromUrl(directionsUrl);
+                
+                if (coords) {
+                    // إنشاء رابط الاتجاهات من الموقع الحالي
+                    directionsUrl = `https://www.google.com/maps/dir/?api=1&origin=${currentLocation.lat},${currentLocation.lng}&destination=${coords.lat},${coords.lng}&travelmode=driving&hl=ar&z=15`;
+                } else {
+                    // إذا لم نتمكن من استخراج الإحداثيات، نفتح الرابط الأصلي
+                    directionsUrl = processGoogleMapsUrlForEmbedding(currentGoogleMapsUrl);
+                }
+                
+                // تحميل رابط الاتجاهات في الـ iframe
+                const iframe = document.getElementById('google-maps-iframe');
+                iframe.src = directionsUrl;
+                
+                // إظهار شاشة التحميل
+                document.getElementById('maps-loading').style.display = 'flex';
+                setTimeout(() => {
+                    document.getElementById('maps-loading').style.display = 'none';
+                }, 2000);
+                
+                console.log('✅ تم فتح الاتجاهات في الخريطة المدمجة');
+                
+            } catch (error) {
+                console.error('❌ خطأ في فتح الاتجاهات:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: 'تعذر فتح الاتجاهات',
+                    background: '#222',
+                    color: '#fff'
+                });
+            }
+        }
+
+        // 6. فتح في تطبيق خرائط خارجي
+        function openInExternalMaps() {
+            try {
+                if (!currentGoogleMapsUrl) {
+                    throw new Error('لا يوجد رابط خرائط متوفر');
+                }
+                
+                // فتح الرابط في نافذة جديدة
+                window.open(currentGoogleMapsUrl, '_blank');
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تم الفتح في تطبيق خارجي',
+                    text: 'سيتم توجيهك إلى تطبيق خرائط جوجل',
+                    timer: 2000,
+                    showConfirmButton: false,
+                    background: '#222',
+                    color: '#fff'
+                });
+                
+            } catch (error) {
+                console.error('❌ خطأ في فتح التطبيق الخارجي:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: 'تعذر فتح التطبيق الخارجي',
+                    background: '#222',
+                    color: '#fff'
+                });
+            }
+        }
+
+        // 7. استخراج إحداثيات من رابط (للاستخدام الداخلي فقط)
+        function extractCoordinatesFromUrl(url) {
             if (!url) return null;
             
-            // الأنماط الأساسية لاستخراج الإحداثيات
             const patterns = [
                 /@(-?\d+\.\d+),(-?\d+\.\d+)/,
                 /[?&]q=(-?\d+\.\d+)[, ]+(-?\d+\.\d+)/,
@@ -2184,342 +2294,7 @@
             return null;
         }
 
-        // ==============================================
-        // 🗺️ Google Maps Integration - NEW FUNCTIONS
-        // ==============================================
-
-        // 1. Initialize Google Maps
-        function initGoogleMap(lat, lng, zoom = 15) {
-            try {
-                const mapContainer = document.getElementById('google-map-container');
-                if (!mapContainer) return null;
-                
-                // Clear existing map
-                if (googleMap) {
-                    googleMap = null;
-                }
-                
-                const mapOptions = {
-                    center: { lat: lat || 29.3759, lng: lng || 47.9774 },
-                    zoom: zoom,
-                    zoomControl: true,
-                    mapTypeControl: true,
-                    scaleControl: true,
-                    streetViewControl: true,
-                    rotateControl: true,
-                    fullscreenControl: true,
-                    mapTypeId: googleMapType,
-                    styles: [
-                        {
-                            "elementType": "geometry",
-                            "stylers": [{"color": "#242f3e"}]
-                        },
-                        {
-                            "elementType": "labels.text.fill",
-                            "stylers": [{"color": "#746855"}]
-                        },
-                        {
-                            "elementType": "labels.text.stroke",
-                            "stylers": [{"color": "#242f3e"}]
-                        },
-                        {
-                            "featureType": "administrative.locality",
-                            "elementType": "labels.text.fill",
-                            "stylers": [{"color": "#d59563"}]
-                        },
-                        {
-                            "featureType": "poi",
-                            "elementType": "labels.text.fill",
-                            "stylers": [{"color": "#d59563"}]
-                        },
-                        {
-                            "featureType": "poi.park",
-                            "elementType": "geometry",
-                            "stylers": [{"color": "#263c3f"}]
-                        },
-                        {
-                            "featureType": "poi.park",
-                            "elementType": "labels.text.fill",
-                            "stylers": [{"color": "#6b9a76"}]
-                        },
-                        {
-                            "featureType": "road",
-                            "elementType": "geometry",
-                            "stylers": [{"color": "#38414e"}]
-                        },
-                        {
-                            "featureType": "road",
-                            "elementType": "geometry.stroke",
-                            "stylers": [{"color": "#212a37"}]
-                        },
-                        {
-                            "featureType": "road",
-                            "elementType": "labels.text.fill",
-                            "stylers": [{"color": "#9ca5b3"}]
-                        },
-                        {
-                            "featureType": "road.highway",
-                            "elementType": "geometry",
-                            "stylers": [{"color": "#746855"}]
-                        },
-                        {
-                            "featureType": "road.highway",
-                            "elementType": "geometry.stroke",
-                            "stylers": [{"color": "#1f2835"}]
-                        },
-                        {
-                            "featureType": "road.highway",
-                            "elementType": "labels.text.fill",
-                            "stylers": [{"color": "#f3d19c"}]
-                        },
-                        {
-                            "featureType": "transit",
-                            "elementType": "geometry",
-                            "stylers": [{"color": "#2f3948"}]
-                        },
-                        {
-                            "featureType": "transit.station",
-                            "elementType": "labels.text.fill",
-                            "stylers": [{"color": "#d59563"}]
-                        },
-                        {
-                            "featureType": "water",
-                            "elementType": "geometry",
-                            "stylers": [{"color": "#17263c"}]
-                        },
-                        {
-                            "featureType": "water",
-                            "elementType": "labels.text.fill",
-                            "stylers": [{"color": "#515c6d"}]
-                        },
-                        {
-                            "featureType": "water",
-                            "elementType": "labels.text.stroke",
-                            "stylers": [{"color": "#17263c"}]
-                        }
-                    ]
-                };
-                
-                googleMap = new google.maps.Map(mapContainer, mapOptions);
-                
-                // Initialize directions service
-                googleDirectionsService = new google.maps.DirectionsService();
-                googleDirectionsRenderer = new google.maps.DirectionsRenderer({
-                    map: googleMap,
-                    suppressMarkers: false,
-                    polylineOptions: {
-                        strokeColor: '#2196F3',
-                        strokeOpacity: 0.8,
-                        strokeWeight: 6
-                    },
-                    markerOptions: {
-                        visible: true
-                    }
-                });
-                
-                console.log('✅ Google Maps initialized successfully');
-                return googleMap;
-                
-            } catch (error) {
-                console.error('❌ Error initializing Google Maps:', error);
-                return null;
-            }
-        }
-
-        // 2. Show Google Maps with order destination
-        function showGoogleMapsWithOrder(orderId) {
-            try {
-                console.log(`🗺️ Opening Google Maps for order: ${orderId}`);
-                
-                const order = [...activeOrders, ...pickedOrders].find(o => o.id == orderId);
-                if (!order) {
-                    throw new Error(`الطلب ${orderId} غير موجود`);
-                }
-                
-                currentGoogleMapOrder = order;
-                
-                // فتح رابط Google Maps مباشرة
-                if (order.location) {
-                    openGoogleMapsLink(order.location);
-                } else {
-                    throw new Error('لا يوجد رابط خرائط جوجل متوفر');
-                }
-                
-            } catch (error) {
-                console.error('❌ Error showing Google Maps:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'خطأ في فتح الخرائط',
-                    text: error.message,
-                    background: '#222',
-                    color: '#fff'
-                });
-            }
-        }
-
-        // 3. Calculate route between two points
-        function calculateRoute(startLat, startLng, endLat, endLng) {
-            try {
-                if (!googleDirectionsService || !googleDirectionsRenderer) return;
-                
-                const request = {
-                    origin: { lat: startLat, lng: startLng },
-                    destination: { lat: endLat, lng: endLng },
-                    travelMode: google.maps.TravelMode.DRIVING,
-                    unitSystem: google.maps.UnitSystem.METRIC,
-                    language: 'ar',
-                    region: 'KW',
-                    provideRouteAlternatives: true
-                };
-                
-                googleDirectionsService.route(request, (result, status) => {
-                    if (status === google.maps.DirectionsStatus.OK) {
-                        googleDirectionsRenderer.setDirections(result);
-                        
-                        // Show route info
-                        const route = result.routes[0];
-                        const distance = route.legs[0].distance.text;
-                        const duration = route.legs[0].duration.text;
-                        
-                        // Update instructions with route info
-                        const instructionsDiv = document.getElementById('google-maps-instructions');
-                        const routeInfo = document.createElement('div');
-                        routeInfo.className = 'instruction-item';
-                        routeInfo.innerHTML = `
-                            <div class="instruction-icon"><i class="fas fa-route"></i></div>
-                            <div class="instruction-text">المسافة: ${distance} | الوقت: ${duration}</div>
-                        `;
-                        instructionsDiv.appendChild(routeInfo);
-                        
-                        console.log(`✅ Route calculated: ${distance}, ${duration}`);
-                    } else {
-                        console.error('❌ Error calculating route:', status);
-                    }
-                });
-                
-            } catch (error) {
-                console.error('❌ Error in calculateRoute:', error);
-            }
-        }
-
-        // 4. Get directions for current route
-        function getDirections() {
-            try {
-                if (!currentGoogleMapOrder || !currentLocation) {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'بيانات غير كافية',
-                        text: 'تعذر تحديد مسار الاتجاهات',
-                        background: '#222',
-                        color: '#fff'
-                    });
-                    return;
-                }
-                
-                // فتح رابط Google Maps مع الاتجاهات
-                if (currentGoogleMapOrder.location) {
-                    openGoogleMapsWithDirections(currentGoogleMapOrder.location);
-                } else {
-                    throw new Error('لا يوجد رابط خرائط جوجل متوفر');
-                }
-                
-            } catch (error) {
-                console.error('❌ Error getting directions:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'خطأ',
-                    text: 'تعذر فتح الاتجاهات',
-                    background: '#222',
-                    color: '#fff'
-                });
-            }
-        }
-
-        // 5. Center map on current location
-        function centerGoogleMap() {
-            try {
-                if (!googleMap) return;
-                
-                if (currentLocation) {
-                    googleMap.setCenter({ lat: currentLocation.lat, lng: currentLocation.lng });
-                    googleMap.setZoom(15);
-                } else {
-                    // Try to get current location
-                    locateMe().then(() => {
-                        if (currentLocation) {
-                            googleMap.setCenter({ lat: currentLocation.lat, lng: currentLocation.lng });
-                            googleMap.setZoom(15);
-                        }
-                    });
-                }
-            } catch (error) {
-                console.error('❌ Error centering map:', error);
-            }
-        }
-
-        // 6. Toggle map type
-        function toggleGoogleMapType() {
-            try {
-                if (!googleMap) return;
-                
-                googleMapType = googleMapType === 'roadmap' ? 'hybrid' : 'roadmap';
-                googleMap.setMapTypeId(googleMapType);
-                
-                // Show notification
-                const typeName = googleMapType === 'roadmap' ? 'الخريطة العادية' : 'الخريطة الهجينة';
-                Swal.fire({
-                    icon: 'info',
-                    title: `تم التبديل إلى ${typeName}`,
-                    timer: 1500,
-                    showConfirmButton: false,
-                    background: '#222',
-                    color: '#fff'
-                });
-            } catch (error) {
-                console.error('❌ Error toggling map type:', error);
-            }
-        }
-
-        // 7. Close Google Maps modal
-        function closeGoogleMapsModal() {
-            try {
-                // Clear markers
-                googleMarkers.forEach(marker => {
-                    if (marker) marker.setMap(null);
-                });
-                googleMarkers = [];
-                
-                // Clear directions
-                if (googleDirectionsRenderer) {
-                    googleDirectionsRenderer.setMap(null);
-                }
-                
-                // Reset variables
-                currentGoogleMapOrder = null;
-                
-                // Hide modal
-                document.getElementById('google-maps-modal').classList.remove('active');
-                document.getElementById('google-maps-instructions').innerHTML = `
-                    <div class="instruction-item">
-                        <div class="instruction-icon"><i class="fas fa-car"></i></div>
-                        <div class="instruction-text">الخط الأزرق: الطريق المباشر</div>
-                    </div>
-                    <div class="instruction-item">
-                        <div class="instruction-icon"><i class="fas fa-map-marker-alt"></i></div>
-                        <div class="instruction-text">المؤشر البرتقالي: موقعك الحالي</div>
-                    </div>
-                    <div class="instruction-item">
-                        <div class="instruction-icon"><i class="fas fa-flag-checkered"></i></div>
-                        <div class="instruction-text">المؤشر الأحمر: وجهة التوصيل</div>
-                    </div>
-                `;
-                
-            } catch (error) {
-                console.error('❌ Error closing Google Maps modal:', error);
-            }
-        }
-
-        // 8. Enhanced navigation function with Google Maps option
+        // 8. وظيفة العرض الرئيسية للتنقل
         function showNavigation(orderId) {
             try {
                 const order = [...activeOrders, ...pickedOrders].find(o => o.id == orderId);
@@ -2531,37 +2306,27 @@
                 const modalBody = document.getElementById('navigation-options');
                 
                 modalBody.innerHTML = `
-                    <div class="navigation-option" onclick="openGoogleMapsLink('${order.location || ''}'); closeNavigationModal();">
+                    <div class="navigation-option" onclick="openGoogleMapsInApp(${orderId}); closeNavigationModal();">
                         <div class="nav-icon google">
                             <i class="fab fa-google"></i>
                         </div>
                         <div class="nav-info">
-                            <div class="nav-title">فتح رابط خرائط جوجل</div>
-                            <div class="nav-description">فتح رابط خرائط جوجل الأصلي في نافذة جديدة</div>
+                            <div class="nav-title">خرائط جوجل داخل التطبيق</div>
+                            <div class="nav-description">فتح خرائط جوجل داخل التطبيق بدون مغادرته</div>
                         </div>
                     </div>
                     
-                    <div class="navigation-option" onclick="openGoogleMapsWithDirections('${order.location || ''}'); closeNavigationModal();">
+                    <div class="navigation-option" onclick="openExternalGoogleMaps('${order.location ? encodeURIComponent(order.location) : ''}', ${order.id}); closeNavigationModal();">
                         <div class="nav-icon google" style="background: linear-gradient(135deg, #34A853 0%, #2E8B57 100%);">
-                            <i class="fas fa-directions"></i>
+                            <i class="fas fa-external-link-alt"></i>
                         </div>
                         <div class="nav-info">
-                            <div class="nav-title">الاتجاهات من موقعي الحالي</div>
-                            <div class="nav-description">فتح خرائط جوجل مع الاتجاهات من موقعك الحالي</div>
+                            <div class="nav-title">فتح في تطبيق جوجل مابس</div>
+                            <div class="nav-description">فتح الرابط في تطبيق خرائط جوجل الأصلي</div>
                         </div>
                     </div>
                     
-                    <div class="navigation-option" onclick="openWazeFromOrder('${order.location || ''}', ${order.id}); closeNavigationModal();">
-                        <div class="nav-icon waze">
-                            <i class="fab fa-waze"></i>
-                        </div>
-                        <div class="nav-info">
-                            <div class="nav-title">فتح تطبيق Waze</div>
-                            <div class="nav-description">فتح في تطبيق Waze للملاحة (إذا كان مثبتاً)</div>
-                        </div>
-                    </div>
-                    
-                    <div class="navigation-option" onclick="showLinkInfo('${order.location || ''}', ${order.id}); closeNavigationModal();">
+                    <div class="navigation-option" onclick="showLinkDetails('${order.location ? encodeURIComponent(order.location) : ''}', ${order.id}); closeNavigationModal();">
                         <div class="nav-icon google" style="background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%);">
                             <i class="fas fa-info-circle"></i>
                         </div>
@@ -2586,51 +2351,44 @@
             }
         }
 
-        // 9. فتح Waze من رابط Google Maps
-        function openWazeFromOrder(googleMapsUrl, orderId) {
+        // 9. فتح خرائط جوجل في تطبيق خارجي
+        function openExternalGoogleMaps(encodedUrl, orderId) {
             try {
-                if (!googleMapsUrl || googleMapsUrl.trim() === '') {
+                if (!encodedUrl) {
                     throw new Error('لا يوجد رابط خرائط جوجل متوفر');
                 }
                 
-                // استخراج الإحداثيات من رابط Google Maps
-                const coords = extractCoordinatesSimple(googleMapsUrl);
+                const originalUrl = decodeURIComponent(encodedUrl);
                 
-                if (coords) {
-                    // فتح Waze بالإحداثيات
-                    const wazeUrl = `https://waze.com/ul?ll=${coords.lat},${coords.lng}&navigate=yes`;
-                    window.open(wazeUrl, '_blank');
-                    
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'تم فتح تطبيق Waze',
-                        text: `سيتم توجيهك إلى موقع الطلب #${orderId}`,
-                        timer: 2000,
-                        showConfirmButton: false,
-                        background: '#222',
-                        color: '#fff'
-                    });
-                } else {
-                    // إذا لم نستطع استخراج الإحداثيات، نفتح رابط Google Maps العادي
-                    openGoogleMapsLink(googleMapsUrl);
-                }
+                // فتح الرابط في نافذة جديدة
+                window.open(originalUrl, '_blank');
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تم الفتح في تطبيق خرائط جوجل',
+                    text: `سيتم توجيهك إلى تطبيق خرائط جوجل للطلب #${orderId}`,
+                    timer: 2000,
+                    showConfirmButton: false,
+                    background: '#222',
+                    color: '#fff'
+                });
                 
             } catch (error) {
-                console.error('❌ Error opening Waze:', error);
+                console.error('❌ Error opening external Google Maps:', error);
                 Swal.fire({
                     icon: 'error',
                     title: 'خطأ',
-                    text: 'تعذر فتح تطبيق Waze',
+                    text: 'تعذر فتح تطبيق خرائط جوجل',
                     background: '#222',
                     color: '#fff'
                 });
             }
         }
 
-        // 10. عرض معلومات الرابط
-        function showLinkInfo(googleMapsUrl, orderId) {
+        // 10. عرض تفاصيل الرابط
+        function showLinkDetails(encodedUrl, orderId) {
             try {
-                if (!googleMapsUrl || googleMapsUrl.trim() === '') {
+                if (!encodedUrl) {
                     Swal.fire({
                         icon: 'error',
                         title: 'لا يوجد رابط',
@@ -2641,7 +2399,7 @@
                     return;
                 }
                 
-                const cleanUrl = googleMapsUrl.trim();
+                const originalUrl = decodeURIComponent(encodedUrl);
                 
                 Swal.fire({
                     title: 'رابط خرائط جوجل',
@@ -2655,18 +2413,18 @@
                             </div>
                             <div style="background: var(--card-light); padding: 15px; border-radius: 10px; margin: 15px 0; word-break: break-all; max-height: 150px; overflow-y: auto;">
                                 <div style="font-family: monospace; font-size: 0.9rem; direction: ltr; text-align: left;">
-                                    ${cleanUrl}
+                                    ${originalUrl}
                                 </div>
                             </div>
                             <div style="color: var(--text-gray); font-size: 0.9rem; margin-bottom: 20px;">
                                 يمكنك نسخ الرابط واستخدامه في أي تطبيق خرائط
                             </div>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                                <button id="copy-link" style="background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; cursor: pointer;">
+                                <button id="copy-link-btn" style="background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; cursor: pointer;">
                                     <i class="fas fa-copy"></i> نسخ الرابط
                                 </button>
-                                <button onclick="openGoogleMapsLink('${cleanUrl.replace(/'/g, "\\'")}');" style="background: #4285F4; color: white; border: none; padding: 12px; border-radius: 10px; cursor: pointer;">
-                                    <i class="fab fa-google"></i> فتح مباشرة
+                                <button onclick="openExternalGoogleMaps('${encodedUrl}', ${orderId})" style="background: #4285F4; color: white; border: none; padding: 12px; border-radius: 10px; cursor: pointer;">
+                                    <i class="fab fa-google"></i> فتح في جوجل مابس
                                 </button>
                             </div>
                         </div>
@@ -2675,8 +2433,8 @@
                     background: '#222',
                     color: '#fff',
                     didOpen: () => {
-                        document.getElementById('copy-link').addEventListener('click', () => {
-                            navigator.clipboard.writeText(cleanUrl).then(() => {
+                        document.getElementById('copy-link-btn').addEventListener('click', () => {
+                            navigator.clipboard.writeText(originalUrl).then(() => {
                                 Swal.fire({
                                     icon: 'success',
                                     title: 'تم النسخ',
@@ -2691,7 +2449,7 @@
                     }
                 });
             } catch (error) {
-                console.error('❌ Error showing link info:', error);
+                console.error('❌ Error showing link details:', error);
                 Swal.fire({
                     icon: 'error',
                     title: 'خطأ',
@@ -2701,6 +2459,10 @@
                 });
             }
         }
+
+        // ==============================================
+        // باقي دوال التطبيق (بدون تغيير)
+        // ==============================================
 
         // Initialize the application
         async function init() {
@@ -3348,7 +3110,6 @@
                     processOrders(data.orders);
                     updateOrdersCount();
                     renderOrdersList();
-                    updateMapMarkers();
                     
                     console.log(`✅ Loaded ${data.orders ? data.orders.length : 0} orders successfully`);
                     
@@ -3391,9 +3152,6 @@
             
             orders.forEach(order => {
                 if (!order || !order.id) return;
-                
-                // عدم استخراج الإحداثيات - نتعامل مع الرابط مباشرة
-                // إزالة أي معالجة للإحداثيات
                 
                 if (order.status === 'Ready' || order.status === 'Assigned') {
                     activeOrders.push(order);
@@ -3555,9 +3313,6 @@
                 const customerName = order.customerName || 'عميل';
                 const customerInitial = customerName.charAt(0).toUpperCase();
                 
-                // إزالة عرض الإحداثيات
-                const locationInfo = '';
-                
                 html += `
                     <div class="order-item-card" onclick="selectOrder(${order.id})" data-order-id="${order.id}">
                         <div class="order-item-header">
@@ -3573,7 +3328,6 @@
                                 <div class="customer-details">
                                     <div class="customer-name">${customerName}</div>
                                     <div class="customer-phone">${order.phone || ''}</div>
-                                    ${locationInfo}
                                 </div>
                             </div>
                             
@@ -3781,9 +3535,6 @@
                 });
                 event.currentTarget.classList.add('active');
                 
-                // إزالة عرض الخريطة للتسليط
-                // showOrderOnMap(order);
-                
                 if (order.status === 'Picked') {
                     showCurrentDelivery(order);
                 }
@@ -3815,14 +3566,14 @@
                 });
             }
             
-            // عرض رابط Google Maps بدلاً من الإحداثيات
+            // عرض رابط Google Maps
             const locationInfo = order.location ? 
                 `<div class="detail-item">
                     <div class="detail-label">رابط الخرائط</div>
                     <div class="detail-value">
-                        <a href="javascript:void(0);" onclick="openGoogleMapsLink('${order.location.replace(/'/g, "\\'")}')" 
+                        <a href="javascript:void(0);" onclick="openGoogleMapsInApp(${order.id}); closeOrderModal();" 
                            style="color: var(--primary); text-decoration: none; word-break: break-all;">
-                            ${order.location.length > 50 ? order.location.substring(0, 50) + '...' : order.location}
+                            <i class="fas fa-map-marker-alt"></i> فتح خرائط جوجل داخل التطبيق
                         </a>
                     </div>
                 </div>` : '';
@@ -4129,11 +3880,10 @@
                 return;
             }
             
-            // إزالة وظيفة عرض الطلبات على الخريطة
             Swal.fire({
                 icon: 'info',
-                title: 'الميزة غير متاحة',
-                text: 'عرض الطلبات على الخريطة غير متاح حالياً',
+                title: 'عرض الطلبات',
+                text: `يوجد ${ordersToShow.length} طلب جاهز للتسليم`,
                 background: '#222',
                 color: '#fff',
                 timer: 2000
@@ -4387,12 +4137,6 @@
                 });
             }
         });
-        
-        // إزالة جميع الدوال المتعلقة باستخراج الإحداثيات وعرض الخرائط
-        // التي لم تعد مستخدمة
-        
-        // إزالة دوال updateMapMarkers و showOrderOnMap
-        // لأننا لن نعرض علامات على الخريطة
     </script>
 </body>
 </html>
