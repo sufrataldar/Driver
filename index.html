@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
     
     <!-- Google Maps API -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDNEVRn7v4RC-RkSf6Wsw8uYFGV3101TGI&libraries=places&language=ar&region=KW&callback=initGoogleMaps" async defer></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDNEVRn7v4RC-RkSf6Wsw8uYFGV3101TGI&libraries=places,geometry&language=ar&region=KW&callback=initGoogleMapsAPI" async defer></script>
     
     <style>
         :root {
@@ -223,6 +223,217 @@
             width: 100%;
             height: 100%;
             transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Embedded Google Maps Container */
+        .embedded-maps-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--darker);
+            z-index: 3000;
+            display: none;
+            flex-direction: column;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .embedded-maps-container.active {
+            display: flex;
+        }
+        
+        .embedded-maps-header {
+            padding: 20px;
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        .embedded-maps-header h3 {
+            font-size: 1.3rem;
+            font-weight: 900;
+            color: var(--primary);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .embedded-maps-header h3 i {
+            font-size: 1.2rem;
+        }
+        
+        .embedded-close-btn {
+            background: rgba(255, 102, 0, 0.1);
+            border: 2px solid rgba(255, 102, 0, 0.3);
+            color: var(--primary);
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 1.2rem;
+        }
+        
+        .embedded-close-btn:hover {
+            background: var(--primary);
+            color: #000;
+            border-color: var(--primary);
+        }
+        
+        #embedded-map {
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            min-height: 300px;
+            background: #2a2a2a;
+        }
+        
+        .embedded-maps-info {
+            padding: 20px;
+            background: var(--card-light);
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        
+        .embedded-info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .embedded-info-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .embedded-info-label {
+            font-size: 0.85rem;
+            color: var(--text-gray);
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .embedded-info-label i {
+            font-size: 0.9rem;
+        }
+        
+        .embedded-info-value {
+            font-size: 1rem;
+            font-weight: 800;
+            color: var(--text);
+            word-break: break-word;
+        }
+        
+        .embedded-info-value.coordinates {
+            font-family: monospace;
+            direction: ltr;
+            font-size: 0.9rem;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 4px 8px;
+            border-radius: 6px;
+            margin-top: 4px;
+            text-align: center;
+        }
+        
+        .embedded-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        
+        .embedded-action-btn {
+            padding: 16px;
+            border: none;
+            border-radius: 14px;
+            font-family: 'Cairo';
+            font-weight: 900;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .embedded-action-btn:active {
+            transform: scale(0.97);
+        }
+        
+        .embedded-action-btn.navigate {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #000;
+            box-shadow: 0 5px 15px rgba(255, 102, 0, 0.3);
+        }
+        
+        .embedded-action-btn.navigate:hover {
+            box-shadow: 0 8px 20px rgba(255, 102, 0, 0.4);
+            transform: translateY(-2px);
+        }
+        
+        .embedded-action-btn.directions {
+            background: linear-gradient(135deg, #4285F4 0%, #3367D6 100%);
+            color: white;
+            box-shadow: 0 5px 15px rgba(66, 133, 244, 0.3);
+        }
+        
+        .embedded-action-btn.directions:hover {
+            box-shadow: 0 8px 20px rgba(66, 133, 244, 0.4);
+            transform: translateY(-2px);
+        }
+        
+        .embedded-action-btn.close {
+            grid-column: span 2;
+            background: var(--card);
+            color: var(--text-gray);
+            border: 2px solid var(--border);
+        }
+        
+        .embedded-action-btn.close:hover {
+            background: #2a2a2a;
+            color: var(--text);
+        }
+        
+        /* Loading state for embedded maps */
+        .embedded-loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+        
+        .embedded-loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 102, 0, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
         
         /* Leaflet Routing Machine Custom Styles */
@@ -609,7 +820,7 @@
             gap: 6px;
         }
         
-        /* صف أزرار الطلب - تم التعديل لإضافة زر ثالث */
+        /* صف أزرار الطلب */
         .order-actions-row {
             display: flex;
             gap: 10px;
@@ -1141,229 +1352,6 @@
             color: var(--primary);
         }
         
-        /* Navigation Modal */
-        .navigation-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.95);
-            z-index: 2000;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        
-        .navigation-modal.active {
-            display: flex;
-        }
-        
-        .navigation-modal-content {
-            background: linear-gradient(135deg, var(--card) 0%, var(--darker) 100%);
-            border-radius: 20px;
-            padding: 25px;
-            width: 100%;
-            max-width: 400px;
-            border: 2px solid var(--primary);
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-            animation: modalSlideUp 0.3s ease;
-        }
-        
-        .navigation-options {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            margin: 25px 0;
-        }
-        
-        .navigation-option {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            padding: 20px;
-            background: var(--card);
-            border: 2px solid var(--border);
-            border-radius: 15px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .navigation-option:hover {
-            transform: translateY(-3px);
-            border-color: var(--primary);
-            box-shadow: 0 8px 20px rgba(255, 102, 0, 0.2);
-        }
-        
-        .nav-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.8rem;
-            flex-shrink: 0;
-        }
-        
-        .nav-icon.osrm {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            color: white;
-        }
-        
-        .nav-icon.google {
-            background: linear-gradient(135deg, #4285F4 0%, #3367D6 100%);
-            color: white;
-        }
-        
-        .nav-icon.waze {
-            background: linear-gradient(135deg, #3337FF 0%, #2A2BD6 100%);
-            color: white;
-        }
-        
-        .nav-icon.apple {
-            background: linear-gradient(135deg, #000 0%, #333 100%);
-            color: white;
-        }
-        
-        .nav-info {
-            flex: 1;
-        }
-        
-        .nav-title {
-            font-size: 1.1rem;
-            font-weight: 800;
-            margin-bottom: 5px;
-            color: var(--text);
-        }
-        
-        .nav-description {
-            font-size: 0.85rem;
-            color: var(--text-gray);
-        }
-        
-        /* Google Maps Container */
-        .google-maps-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.95);
-            z-index: 3000;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            animation: fadeIn 0.3s ease;
-        }
-        
-        .google-maps-modal.active {
-            display: flex;
-        }
-        
-        .google-maps-content {
-            background: var(--darker);
-            border-radius: 20px;
-            padding: 0;
-            width: 100%;
-            max-width: 500px;
-            height: 80vh;
-            border: 2px solid var(--primary);
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-            animation: modalSlideUp 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        
-        .google-maps-header {
-            padding: 20px;
-            background: var(--card);
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .google-maps-header h3 {
-            font-size: 1.3rem;
-            font-weight: 900;
-            color: var(--primary);
-            margin: 0;
-        }
-        
-        #google-map-container {
-            flex: 1;
-            min-height: 0;
-        }
-        
-        .google-map-info {
-            padding: 20px;
-            background: var(--card);
-            border-top: 1px solid var(--border);
-        }
-        
-        .google-map-info-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-        }
-        
-        .google-map-label {
-            color: var(--text-gray);
-            font-size: 0.9rem;
-        }
-        
-        .google-map-value {
-            color: var(--text);
-            font-weight: 700;
-            font-size: 1rem;
-        }
-        
-        .google-maps-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-        
-        .google-map-btn {
-            flex: 1;
-            padding: 14px;
-            border: none;
-            border-radius: 12px;
-            font-family: 'Cairo';
-            font-weight: 900;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 0.95rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        
-        .google-map-btn:active {
-            transform: scale(0.95);
-        }
-        
-        .google-map-btn.navigate {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            color: #000;
-        }
-        
-        .google-map-btn.directions {
-            background: linear-gradient(135deg, #4285F4 0%, #3367D6 100%);
-            color: white;
-        }
-        
-        .google-map-btn.close {
-            background: var(--card-light);
-            color: var(--text-gray);
-            border: 1px solid var(--border);
-        }
-        
         /* Responsive adjustments */
         @media (max-width: 480px) {
             :root {
@@ -1419,41 +1407,26 @@
                 max-height: 350px !important;
             }
             
-            /* تعديلات للـ status modal على الشاشات الصغيرة */
-            .status-modal-content {
-                padding: 25px 20px 20px;
-                border-radius: 20px;
+            /* Embedded maps responsive */
+            .embedded-info-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
             }
             
-            .status-modal-header h3 {
-                font-size: 1.4rem;
+            .embedded-actions {
+                grid-template-columns: 1fr;
             }
             
-            .status-option {
-                padding: 16px 18px;
-                border-radius: 16px;
+            .embedded-action-btn.close {
+                grid-column: span 1;
             }
             
-            .status-icon {
-                width: 55px;
-                height: 55px;
-                font-size: 1.6rem;
-                border-radius: 14px;
+            .embedded-info-item {
+                padding: 10px 12px;
             }
             
-            .status-title {
-                font-size: 1rem;
-            }
-            
-            .status-btn {
-                padding: 14px;
+            .embedded-info-value {
                 font-size: 0.95rem;
-            }
-            
-            /* Google Maps responsive */
-            .google-maps-content {
-                height: 85vh;
-                max-width: 100%;
             }
         }
         
@@ -1479,21 +1452,6 @@
             
             .leaflet-routing-container {
                 width: 250px !important;
-            }
-            
-            .status-option {
-                padding: 14px 16px;
-                gap: 15px;
-            }
-            
-            .status-icon {
-                width: 50px;
-                height: 50px;
-                font-size: 1.5rem;
-            }
-            
-            .status-modal-content {
-                padding: 22px 18px 18px;
             }
         }
         
@@ -1827,6 +1785,64 @@
         </div>
     </div>
     
+    <!-- Embedded Google Maps Container -->
+    <div class="embedded-maps-container" id="embedded-maps-container">
+        <div class="embedded-maps-header">
+            <h3><i class="fab fa-google"></i> خرائط جوجل داخل التطبيق</h3>
+            <button class="embedded-close-btn" onclick="closeEmbeddedMaps()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div id="embedded-map"></div>
+        
+        <div class="embedded-loading" id="embedded-loading">
+            <div class="embedded-loading-spinner"></div>
+            <p style="color: white;">جاري تحميل الخريطة...</p>
+        </div>
+        
+        <div class="embedded-maps-info">
+            <div class="embedded-info-grid">
+                <div class="embedded-info-item">
+                    <div class="embedded-info-label">
+                        <i class="fas fa-map-marker-alt"></i> الوجهة:
+                    </div>
+                    <div class="embedded-info-value" id="embedded-destination">...</div>
+                </div>
+                
+                <div class="embedded-info-item">
+                    <div class="embedded-info-label">
+                        <i class="fas fa-road"></i> المسافة:
+                    </div>
+                    <div class="embedded-info-value" id="embedded-distance">جاري الحساب...</div>
+                </div>
+                
+                <div class="embedded-info-item">
+                    <div class="embedded-info-label">
+                        <i class="fas fa-clock"></i> الوقت المتوقع:
+                    </div>
+                    <div class="embedded-info-value" id="embedded-duration">جاري الحساب...</div>
+                </div>
+                
+                <div class="embedded-info-item">
+                    <div class="embedded-info-label">
+                        <i class="fas fa-compass"></i> الإحداثيات:
+                    </div>
+                    <div class="embedded-info-value coordinates" id="embedded-coordinates">...</div>
+                </div>
+            </div>
+            
+            <div class="embedded-actions">
+                <button class="embedded-action-btn navigate" onclick="startNavigationFromEmbeddedMap()">
+                    <i class="fas fa-directions"></i> بدء التنقل
+                </button>
+                <button class="embedded-action-btn close" onclick="closeEmbeddedMaps()">
+                    <i class="fas fa-times"></i> إغلاق الخريطة
+                </button>
+            </div>
+        </div>
+    </div>
+    
     <!-- Orders Sheet -->
     <div class="orders-sheet collapsed" id="orders-sheet">
         <div class="drag-handle-container" id="drag-handle">
@@ -1929,64 +1945,6 @@
         </div>
     </div>
     
-    <!-- Navigation Options Modal -->
-    <div class="navigation-modal" id="navigation-modal">
-        <div class="navigation-modal-content">
-            <div class="order-modal-header">
-                <h3>اختر طريقة التنقل</h3>
-                <button class="close-modal" onclick="closeNavigationModal()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            
-            <div class="navigation-options" id="navigation-options">
-                <!-- سيتم ملؤها بالجافاسكريبت -->
-            </div>
-            
-            <div class="status-actions">
-                <button class="status-btn cancel" onclick="closeNavigationModal()">إلغاء</button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Google Maps Modal -->
-    <div class="google-maps-modal" id="google-maps-modal">
-        <div class="google-maps-content">
-            <div class="google-maps-header">
-                <h3>خريطة جوجل</h3>
-                <button class="close-modal" onclick="closeGoogleMaps()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            
-            <div id="google-map-container"></div>
-            
-            <div class="google-map-info">
-                <div class="google-map-info-row">
-                    <div class="google-map-label">الوجهة:</div>
-                    <div class="google-map-value" id="google-map-destination">...</div>
-                </div>
-                <div class="google-map-info-row">
-                    <div class="google-map-label">المسافة:</div>
-                    <div class="google-map-value" id="google-map-distance">0 كم</div>
-                </div>
-                <div class="google-map-info-row">
-                    <div class="google-map-label">الوقت:</div>
-                    <div class="google-map-value" id="google-map-duration">0 دقيقة</div>
-                </div>
-                
-                <div class="google-maps-actions">
-                    <button class="google-map-btn navigate" onclick="startNavigationWithGoogleMaps()">
-                        <i class="fas fa-directions"></i> بدء التنقل
-                    </button>
-                    <button class="google-map-btn close" onclick="closeGoogleMaps()">
-                        <i class="fas fa-times"></i> إغلاق
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
     <!-- Audio for notifications -->
     <audio id="notification-sound" preload="auto">
         <source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg">
@@ -2033,12 +1991,15 @@
         let currentTab = 'active';
         let isConnected = false;
         
-        // Google Maps Variables
-        let googleMap;
-        let googleDirectionsService;
-        let googleDirectionsRenderer;
-        let currentGoogleMapOrder = null;
-        let currentGoogleMapRoute = null;
+        // Embedded Google Maps Variables
+        let embeddedMap = null;
+        let embeddedDirectionsService = null;
+        let embeddedDirectionsRenderer = null;
+        let currentEmbeddedOrder = null;
+        let currentEmbeddedCoords = null;
+        let googleMapsAPILoaded = false;
+        let embeddedOriginMarker = null;
+        let embeddedDestinationMarker = null;
         
         // متغيرات التحكم بالشريط السفلي
         let isDraggingSheet = false;
@@ -2053,10 +2014,10 @@
         let lastTime = 0;
         
         // ==============================================
-        // 📍 نظام استخراج الإحداثيات المحسن - الإصدار الجديد
+        // 📍 نظام استخراج الإحداثيات المحسن
         // ==============================================
 
-        // 1. دالة استخراج الإحداثيات من جميع تنسيقات الروابط - محسنة
+        // دالة استخراج الإحداثيات من جميع تنسيقات الروابط
         function extractCoordinatesFromGoogleMaps(url) {
             if (!url || typeof url !== 'string') return null;
             
@@ -2118,7 +2079,12 @@
                     
                     if (isValidCoordinate(lat, lng)) {
                         console.log(`✅ تم استخراج الإحداثيات (النمط ${i}): ${lat}, ${lng}`);
-                        return { lat, lng, source: `pattern_${i}` };
+                        return { 
+                            lat, 
+                            lng, 
+                            source: `pattern_${i}`,
+                            method: `استخدام النمط ${i+1}`
+                        };
                     }
                 }
             }
@@ -2138,7 +2104,12 @@
                 
                 if (isValidCoordinate(lat, lng)) {
                     console.log(`✅ استخراج من الأرقام العامة: ${lat}, ${lng}`);
-                    return { lat, lng, source: 'general_numbers' };
+                    return { 
+                        lat, 
+                        lng, 
+                        source: 'general_numbers',
+                        method: 'استخراج الأرقام العامة'
+                    };
                 }
             }
             
@@ -2146,7 +2117,7 @@
             return null;
         }
 
-        // 2. التحقق من صحة الإحداثيات
+        // التحقق من صحة الإحداثيات
         function isValidCoordinate(lat, lng) {
             if (isNaN(lat) || isNaN(lng)) {
                 console.error(`❌ إحداثيات غير رقمية: ${lat}, ${lng}`);
@@ -2163,18 +2134,10 @@
                 return false;
             }
             
-            // نطاق الكويت التقريبي (اختياري للتحقق)
-            const isInKuwait = lat >= 28.5 && lat <= 30.5 && lng >= 47.5 && lng <= 48.5;
-            
-            if (!isInKuwait) {
-                console.warn(`⚠️ الإحداثيات خارج نطاق الكويت: ${lat}, ${lng}`);
-                // نستمر مع الإحداثيات حتى لو خارج الكويت
-            }
-            
             return true;
         }
 
-        // 3. استخراج الإحداثيات مع ذاكرة التخزين المؤقت
+        // استخراج الإحداثيات مع ذاكرة التخزين المؤقت
         function extractCoordinatesWithCache(order) {
             if (!order) return null;
             
@@ -2185,30 +2148,20 @@
                 
                 if (isValidCoordinate(lat, lng)) {
                     console.log(`✅ استخدام الإحداثيات المخزنة: ${lat}, ${lng}`);
-                    return { lat, lng, source: 'stored' };
+                    return { 
+                        lat, 
+                        lng, 
+                        source: 'stored',
+                        method: 'الإحداثيات المخزنة في الطلب'
+                    };
                 }
             }
             
             // المحاولة الثانية: استخراج من رابط خرائط جوجل
             if (order.location) {
-                // معالجة الروابط التي تحتوي على +20 لضمان استخراج صحيح
-                let processedUrl = order.location;
-                
-                // تحويل + إلى مسافة للتعامل معها بشكل صحيح
-                if (processedUrl.includes('+20')) {
-                    processedUrl = processedUrl.replace(/\+/g, ' ');
-                }
-                
-                const coords = extractCoordinatesFromGoogleMaps(processedUrl);
+                const coords = extractCoordinatesFromGoogleMaps(order.location);
                 if (coords) {
                     console.log(`✅ إحداثيات مستخرجة من الرابط: ${coords.lat}, ${coords.lng}`);
-                    // تحديث الطلب بالإحداثيات الجديدة
-                    order.locationLat = coords.lat;
-                    order.locationLng = coords.lng;
-                    
-                    // حفظ في السيرفر (غير متزامن)
-                    saveCoordinatesToServer(order.id, coords);
-                    
                     return coords;
                 }
             }
@@ -2224,12 +2177,12 @@
                 
                 if (isValidCoordinate(lat, lng)) {
                     console.log(`✅ إحداثيات مكتشفة في النص: ${lat}, ${lng}`);
-                    order.locationLat = lat;
-                    order.locationLng = lng;
-                    
-                    saveCoordinatesToServer(order.id, { lat, lng });
-                    
-                    return { lat, lng, source: 'text_discovery' };
+                    return { 
+                        lat, 
+                        lng, 
+                        source: 'text_discovery',
+                        method: 'اكتشاف الإحداثيات في النص'
+                    };
                 }
             }
             
@@ -2238,56 +2191,35 @@
             return {
                 lat: 29.3759,
                 lng: 47.9774,
-                source: 'default_location'
+                source: 'default_location',
+                method: 'الموقع الافتراضي للكويت'
             };
         }
 
-        // 4. حفظ الإحداثيات في السيرفر
-        async function saveCoordinatesToServer(orderId, coords) {
-            try {
-                const params = new URLSearchParams();
-                params.append('action', 'update');
-                params.append('id', orderId);
-                params.append('locationLat', coords.lat);
-                params.append('locationLng', coords.lng);
-                
-                await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: params,
-                    mode: 'cors'
-                });
-                
-                console.log(`✅ تم حفظ الإحداثيات للطلب ${orderId}`);
-            } catch (error) {
-                console.error(`❌ فشل حفظ الإحداثيات: ${error}`);
-            }
-        }
-
-        // 5. استخراج الإحداثيات المحسّنة
+        // استخراج الإحداثيات المحسّنة
         function validateAndFixCoordinates(order) {
             return extractCoordinatesWithCache(order);
         }
 
         // ==============================================
-        // 🗺️ GOOGLE MAPS INTEGRATION
+        // 🗺️ GOOGLE MAPS EMBEDDED NAVIGATION SYSTEM
         // ==============================================
 
-        // تهيئة خرائط جوجل
-        function initGoogleMaps() {
-            console.log('✅ Google Maps API loaded');
-            // سيتم تهيئتها عند الحاجة
+        // تهيئة Google Maps API
+        function initGoogleMapsAPI() {
+            console.log('✅ Google Maps API loaded and ready');
+            googleMapsAPILoaded = true;
         }
 
-        // فتح خريطة جوجل للطلب
-        function openGoogleMapsForOrder(orderId) {
+        // فتح خرائط جوجل المدمجة داخل التطبيق
+        function openEmbeddedNavigation(orderId) {
             const order = [...activeOrders, ...pickedOrders].find(o => o.id == orderId);
             if (!order) {
                 showError('الطلب غير موجود', 'لم يتم العثور على الطلب المحدد');
                 return;
             }
             
-            currentGoogleMapOrder = order;
+            currentEmbeddedOrder = order;
             
             // استخراج الإحداثيات
             const coords = validateAndFixCoordinates(order);
@@ -2296,387 +2228,444 @@
                 return;
             }
             
-            // إظهار الخريطة
-            showGoogleMapWithRoute(coords);
+            currentEmbeddedCoords = coords;
             
-            // تحديث معلومات الوجهة
-            document.getElementById('google-map-destination').textContent = 
-                order.customerName || order.addressDetails || 'العميل';
-            
-            document.getElementById('google-maps-modal').classList.add('active');
+            // إظهار نافذة الخريطة المدمجة
+            showEmbeddedMaps(coords, order);
         }
 
-        // إظهار خريطة جوجل مع المسار
-        function showGoogleMapWithRoute(destinationCoords) {
-            if (!currentLocation) {
-                Swal.fire({
-                    title: 'جاري تحديد موقعك...',
-                    text: 'الرجاء الانتظار للحصول على موقعك',
-                    allowOutsideClick: false,
-                    showConfirmButton: false,
-                    background: '#222',
-                    color: '#fff',
-                    didOpen: () => {
-                        Swal.showLoading();
-                        locateMe().then(() => {
-                            Swal.close();
-                            initGoogleMap(destinationCoords);
-                        }).catch(() => {
-                            Swal.close();
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'خطأ في الموقع',
-                                text: 'تعذر تحديد موقعك. سيتم استخدام موقع افتراضي.',
-                                background: '#222',
-                                color: '#fff'
-                            }).then(() => {
-                                initGoogleMap(destinationCoords);
-                            });
-                        });
-                    }
-                });
-                return;
-            }
+        // إظهار خرائط جوجل المدمجة
+        function showEmbeddedMaps(coords, order) {
+            const container = document.getElementById('embedded-maps-container');
+            const loading = document.getElementById('embedded-loading');
             
-            initGoogleMap(destinationCoords);
-        }
-
-        // تهيئة خريطة جوجل
-        function initGoogleMap(destinationCoords) {
-            const mapContainer = document.getElementById('google-map-container');
-            if (!mapContainer) return;
+            // تحديث معلومات الطلب
+            document.getElementById('embedded-destination').textContent = 
+                order.customerName || order.addressDetails || 'موقع العميل';
             
-            // إعدادات الخريطة
-            const mapOptions = {
-                zoom: 13,
-                center: currentLocation || { lat: 29.3759, lng: 47.9774 },
-                mapTypeId: google.maps.MapTypeId.ROADMAP,
-                mapTypeControl: false,
-                streetViewControl: false,
-                fullscreenControl: true,
-                zoomControl: true,
-                zoomControlOptions: {
-                    position: google.maps.ControlPosition.RIGHT_BOTTOM
-                },
-                styles: [
-                    {
-                        "elementType": "geometry",
-                        "stylers": [{ "color": "#242f3e" }]
-                    },
-                    {
-                        "elementType": "labels.text.fill",
-                        "stylers": [{ "color": "#746855" }]
-                    },
-                    {
-                        "elementType": "labels.text.stroke",
-                        "stylers": [{ "color": "#242f3e" }]
-                    },
-                    {
-                        "featureType": "administrative.locality",
-                        "elementType": "labels.text.fill",
-                        "stylers": [{ "color": "#d59563" }]
-                    },
-                    {
-                        "featureType": "poi",
-                        "elementType": "labels.text.fill",
-                        "stylers": [{ "color": "#d59563" }]
-                    },
-                    {
-                        "featureType": "poi.park",
-                        "elementType": "geometry",
-                        "stylers": [{ "color": "#263c3f" }]
-                    },
-                    {
-                        "featureType": "poi.park",
-                        "elementType": "labels.text.fill",
-                        "stylers": [{ "color": "#6b9a76" }]
-                    },
-                    {
-                        "featureType": "road",
-                        "elementType": "geometry",
-                        "stylers": [{ "color": "#38414e" }]
-                    },
-                    {
-                        "featureType": "road",
-                        "elementType": "geometry.stroke",
-                        "stylers": [{ "color": "#212a37" }]
-                    },
-                    {
-                        "featureType": "road",
-                        "elementType": "labels.text.fill",
-                        "stylers": [{ "color": "#9ca5b3" }]
-                    },
-                    {
-                        "featureType": "road.highway",
-                        "elementType": "geometry",
-                        "stylers": [{ "color": "#746855" }]
-                    },
-                    {
-                        "featureType": "road.highway",
-                        "elementType": "geometry.stroke",
-                        "stylers": [{ "color": "#1f2835" }]
-                    },
-                    {
-                        "featureType": "road.highway",
-                        "elementType": "labels.text.fill",
-                        "stylers": [{ "color": "#f3d19c" }]
-                    },
-                    {
-                        "featureType": "transit",
-                        "elementType": "geometry",
-                        "stylers": [{ "color": "#2f3948" }]
-                    },
-                    {
-                        "featureType": "transit.station",
-                        "elementType": "labels.text.fill",
-                        "stylers": [{ "color": "#d59563" }]
-                    },
-                    {
-                        "featureType": "water",
-                        "elementType": "geometry",
-                        "stylers": [{ "color": "#17263c" }]
-                    },
-                    {
-                        "featureType": "water",
-                        "elementType": "labels.text.fill",
-                        "stylers": [{ "color": "#515c6d" }]
-                    },
-                    {
-                        "featureType": "water",
-                        "elementType": "labels.text.stroke",
-                        "stylers": [{ "color": "#17263c" }]
-                    }
-                ]
-            };
+            document.getElementById('embedded-coordinates').textContent = 
+                `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
             
-            // إنشاء الخريطة
-            googleMap = new google.maps.Map(mapContainer, mapOptions);
+            // إظهار النافذة
+            container.classList.add('active');
             
-            // تهيئة خدمات الاتجاهات
-            googleDirectionsService = new google.maps.DirectionsService();
-            googleDirectionsRenderer = new google.maps.DirectionsRenderer({
-                map: googleMap,
-                suppressMarkers: false,
-                polylineOptions: {
-                    strokeColor: '#ff6600',
-                    strokeOpacity: 0.9,
-                    strokeWeight: 6
-                },
-                markerOptions: {
-                    visible: true
-                }
-            });
+            // إظهار شاشة التحميل
+            loading.style.display = 'flex';
             
-            // إنشاء العلامات المخصصة
-            createCustomGoogleMarkers(destinationCoords);
-            
-            // حساب المسار
-            calculateGoogleRoute(destinationCoords);
-        }
-
-        // إنشاء علامات مخصصة على خرائط جوجل
-        function createCustomGoogleMarkers(destinationCoords) {
-            if (!googleMap) return;
-            
-            // علامة موقع السائق
-            if (currentLocation) {
-                const driverMarker = new google.maps.Marker({
-                    position: currentLocation,
-                    map: googleMap,
-                    icon: {
-                        path: google.maps.SymbolPath.CIRCLE,
-                        scale: 10,
-                        fillColor: '#ff6600',
-                        fillOpacity: 1,
-                        strokeColor: '#ffffff',
-                        strokeWeight: 3
-                    },
-                    title: 'موقعك الحالي'
-                });
-                
-                const driverInfoWindow = new google.maps.InfoWindow({
-                    content: `
-                        <div style="font-family: Cairo; padding: 10px; min-width: 200px;">
-                            <h3 style="color: #ff6600; margin: 0 0 10px 0;">موقع السائق</h3>
-                            <p style="margin: 5px 0;">أنت هنا</p>
+            // تهيئة الخريطة بعد تأخير قصير لضمان تحميل API
+            setTimeout(() => {
+                if (!googleMapsAPILoaded) {
+                    loading.innerHTML = `
+                        <div style="text-align: center; padding: 20px; color: white;">
+                            <i class="fas fa-exclamation-triangle fa-2x" style="margin-bottom: 15px;"></i>
+                            <p>لم يتم تحميل خرائط جوجل بعد</p>
+                            <p style="font-size: 0.9rem; margin-top: 10px;">يرجى الانتظار أو إعادة تحميل الصفحة</p>
                         </div>
-                    `
+                    `;
+                    return;
+                }
+                
+                initEmbeddedMap(coords, order);
+                loading.style.display = 'none';
+            }, 1000);
+        }
+
+        // تهيئة خرائط جوجل المدمجة
+        function initEmbeddedMap(destinationCoords, order) {
+            try {
+                const mapElement = document.getElementById('embedded-map');
+                
+                if (!mapElement) {
+                    throw new Error('عنصر الخريطة غير موجود');
+                }
+                
+                // إعدادات الخريطة
+                const mapOptions = {
+                    zoom: 15,
+                    center: destinationCoords,
+                    mapTypeId: google.maps.MapTypeId.ROADMAP,
+                    mapTypeControl: false,
+                    streetViewControl: false,
+                    fullscreenControl: true,
+                    zoomControl: true,
+                    zoomControlOptions: {
+                        position: google.maps.ControlPosition.RIGHT_BOTTOM
+                    },
+                    styles: [
+                        {
+                            "elementType": "geometry",
+                            "stylers": [{ "color": "#242f3e" }]
+                        },
+                        {
+                            "elementType": "labels.text.fill",
+                            "stylers": [{ "color": "#746855" }]
+                        },
+                        {
+                            "elementType": "labels.text.stroke",
+                            "stylers": [{ "color": "#242f3e" }]
+                        },
+                        {
+                            "featureType": "administrative.locality",
+                            "elementType": "labels.text.fill",
+                            "stylers": [{ "color": "#d59563" }]
+                        },
+                        {
+                            "featureType": "poi",
+                            "elementType": "labels.text.fill",
+                            "stylers": [{ "color": "#d59563" }]
+                        },
+                        {
+                            "featureType": "poi.park",
+                            "elementType": "geometry",
+                            "stylers": [{ "color": "#263c3f" }]
+                        },
+                        {
+                            "featureType": "poi.park",
+                            "elementType": "labels.text.fill",
+                            "stylers": [{ "color": "#6b9a76" }]
+                        },
+                        {
+                            "featureType": "road",
+                            "elementType": "geometry",
+                            "stylers": [{ "color": "#38414e" }]
+                        },
+                        {
+                            "featureType": "road",
+                            "elementType": "geometry.stroke",
+                            "stylers": [{ "color": "#212a37" }]
+                        },
+                        {
+                            "featureType": "road",
+                            "elementType": "labels.text.fill",
+                            "stylers": [{ "color": "#9ca5b3" }]
+                        },
+                        {
+                            "featureType": "road.highway",
+                            "elementType": "geometry",
+                            "stylers": [{ "color": "#746855" }]
+                        },
+                        {
+                            "featureType": "road.highway",
+                            "elementType": "geometry.stroke",
+                            "stylers": [{ "color": "#1f2835" }]
+                        },
+                        {
+                            "featureType": "road.highway",
+                            "elementType": "labels.text.fill",
+                            "stylers": [{ "color": "#f3d19c" }]
+                        },
+                        {
+                            "featureType": "transit",
+                            "elementType": "geometry",
+                            "stylers": [{ "color": "#2f3948" }]
+                        },
+                        {
+                            "featureType": "transit.station",
+                            "elementType": "labels.text.fill",
+                            "stylers": [{ "color": "#d59563" }]
+                        },
+                        {
+                            "featureType": "water",
+                            "elementType": "geometry",
+                            "stylers": [{ "color": "#17263c" }]
+                        },
+                        {
+                            "featureType": "water",
+                            "elementType": "labels.text.fill",
+                            "stylers": [{ "color": "#515c6d" }]
+                        },
+                        {
+                            "featureType": "water",
+                            "elementType": "labels.text.stroke",
+                            "stylers": [{ "color": "#17263c" }]
+                        }
+                    ]
+                };
+                
+                // إنشاء الخريطة
+                embeddedMap = new google.maps.Map(mapElement, mapOptions);
+                
+                // تهيئة خدمات الاتجاهات
+                embeddedDirectionsService = new google.maps.DirectionsService();
+                embeddedDirectionsRenderer = new google.maps.DirectionsRenderer({
+                    map: embeddedMap,
+                    suppressMarkers: false,
+                    polylineOptions: {
+                        strokeColor: '#ff6600', // لون برتقالي
+                        strokeOpacity: 0.9,
+                        strokeWeight: 6,
+                        icons: [{
+                            icon: {
+                                path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+                                scale: 4,
+                                strokeColor: '#ff6600'
+                            },
+                            offset: '100%',
+                            repeat: '100px'
+                        }]
+                    }
                 });
                 
-                driverMarker.addListener('click', () => {
-                    driverInfoWindow.open(googleMap, driverMarker);
-                });
+                // إنشاء علامة الوجهة
+                createEmbeddedDestinationMarker(destinationCoords, order);
+                
+                console.log('✅ Embedded Google Map initialized successfully');
+                
+                // حساب المسار إذا كان موقع السائق متاحاً
+                if (currentLocation) {
+                    calculateEmbeddedRoute(currentLocation, destinationCoords);
+                } else {
+                    // طلب موقع السائق
+                    locateMe().then(() => {
+                        if (currentLocation) {
+                            calculateEmbeddedRoute(currentLocation, destinationCoords);
+                        }
+                    });
+                }
+                
+            } catch (error) {
+                console.error('❌ Error initializing embedded Google Map:', error);
+                document.getElementById('embedded-loading').innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: white;">
+                        <i class="fas fa-exclamation-triangle fa-2x" style="margin-bottom: 15px; color: #ff6600;"></i>
+                        <p>خطأ في تحميل الخريطة</p>
+                        <p style="font-size: 0.9rem; margin-top: 10px;">${error.message}</p>
+                        <button onclick="closeEmbeddedMaps()" style="background: #ff6600; color: white; border: none; padding: 10px 20px; border-radius: 8px; margin-top: 15px; cursor: pointer;">
+                            إغلاق
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // إنشاء علامة الوجهة على الخريطة المدمجة
+        function createEmbeddedDestinationMarker(coords, order) {
+            if (!embeddedMap) return;
+            
+            // إزالة العلامة القديمة إذا كانت موجودة
+            if (embeddedDestinationMarker) {
+                embeddedDestinationMarker.setMap(null);
             }
             
-            // علامة موقع العميل
-            const destinationMarker = new google.maps.Marker({
-                position: destinationCoords,
-                map: googleMap,
+            // إنشاء علامة جديدة
+            embeddedDestinationMarker = new google.maps.Marker({
+                position: coords,
+                map: embeddedMap,
                 icon: {
-                    path: google.maps.SymbolPath.CIRCLE,
-                    scale: 10,
-                    fillColor: '#00c851',
-                    fillOpacity: 1,
-                    strokeColor: '#ffffff',
-                    strokeWeight: 3
+                    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                        <svg xmlns="http://www.w3.org/2000/svg" width="60" height="80" viewBox="0 0 60 80">
+                            <circle cx="30" cy="30" r="20" fill="#00c851" stroke="#ffffff" stroke-width="4"/>
+                            <path d="M30,50 L30,70 L35,75 L25,75 L30,70 Z" fill="#00c851" stroke="#ffffff" stroke-width="2"/>
+                            <text x="30" y="30" text-anchor="middle" dy=".3em" fill="#ffffff" font-family="Arial" font-weight="bold" font-size="16">
+                                <tspan x="30" dy="0">📍</tspan>
+                            </text>
+                        </svg>
+                    `),
+                    scaledSize: new google.maps.Size(60, 80),
+                    anchor: new google.maps.Point(30, 80)
                 },
-                title: 'موقع العميل'
+                title: `طلب #${currentEmbeddedOrder?.id || ''} - ${currentEmbeddedOrder?.customerName || 'العميل'}`,
+                animation: google.maps.Animation.DROP
             });
             
-            const destinationInfoWindow = new google.maps.InfoWindow({
+            // إضافة نافذة معلومات
+            const infoWindow = new google.maps.InfoWindow({
                 content: `
-                    <div style="font-family: Cairo; padding: 10px; min-width: 250px;">
-                        <h3 style="color: #00c851; margin: 0 0 10px 0;">موقع العميل</h3>
-                        <p style="margin: 5px 0;"><strong>طلب:</strong> #${currentGoogleMapOrder.id}</p>
-                        <p style="margin: 5px 0;"><strong>الاسم:</strong> ${currentGoogleMapOrder.customerName || 'العميل'}</p>
-                        <p style="margin: 5px 0;"><strong>العنوان:</strong> ${currentGoogleMapOrder.addressDetails || 'غير محدد'}</p>
-                        <p style="margin: 5px 0;"><strong>الإحداثيات:</strong> ${destinationCoords.lat.toFixed(6)}, ${destinationCoords.lng.toFixed(6)}</p>
+                    <div style="font-family: 'Cairo', sans-serif; padding: 15px; min-width: 250px; direction: rtl;">
+                        <h3 style="color: #ff6600; margin: 0 0 10px 0; text-align: right; font-size: 16px;">
+                            <i class="fas fa-map-marker-alt"></i> موقع العميل
+                        </h3>
+                        <div style="margin-bottom: 10px;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                <span style="color: #666;">رقم الطلب:</span>
+                                <span style="font-weight: bold; color: #ff6600;">#${currentEmbeddedOrder?.id || ''}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                <span style="color: #666;">اسم العميل:</span>
+                                <span style="font-weight: bold;">${currentEmbeddedOrder?.customerName || 'العميل'}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: #666;">الهاتف:</span>
+                                <span style="direction: ltr;">${currentEmbeddedOrder?.phone || 'غير متوفر'}</span>
+                            </div>
+                        </div>
+                        <div style="background: #f5f5f5; padding: 8px; border-radius: 6px; margin-top: 10px; font-size: 12px;">
+                            <div style="color: #666; margin-bottom: 4px;">الإحداثيات:</div>
+                            <div style="font-family: monospace; direction: ltr; text-align: center;">
+                                ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}
+                            </div>
+                        </div>
                     </div>
                 `
             });
             
-            destinationMarker.addListener('click', () => {
-                destinationInfoWindow.open(googleMap, destinationMarker);
+            embeddedDestinationMarker.addListener('click', () => {
+                infoWindow.open(embeddedMap, embeddedDestinationMarker);
             });
         }
 
-        // حساب المسار على خرائط جوجل
-        function calculateGoogleRoute(destinationCoords) {
-            if (!googleDirectionsService || !googleDirectionsRenderer || !currentLocation) return;
+        // إنشاء علامة نقطة البداية (موقع السائق)
+        function createEmbeddedOriginMarker(coords) {
+            if (!embeddedMap) return;
+            
+            // إزالة العلامة القديمة إذا كانت موجودة
+            if (embeddedOriginMarker) {
+                embeddedOriginMarker.setMap(null);
+            }
+            
+            // إنشاء علامة جديدة
+            embeddedOriginMarker = new google.maps.Marker({
+                position: coords,
+                map: embeddedMap,
+                icon: {
+                    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                        <svg xmlns="http://www.w3.org/2000/svg" width="60" height="80" viewBox="0 0 60 80">
+                            <circle cx="30" cy="30" r="20" fill="#ff6600" stroke="#ffffff" stroke-width="4"/>
+                            <path d="M30,50 L30,70 L35,75 L25,75 L30,70 Z" fill="#ff6600" stroke="#ffffff" stroke-width="2"/>
+                            <text x="30" y="30" text-anchor="middle" dy=".3em" fill="#ffffff" font-family="Arial" font-weight="bold" font-size="16">
+                                <tspan x="30" dy="0">🚗</tspan>
+                            </text>
+                        </svg>
+                    `),
+                    scaledSize: new google.maps.Size(60, 80),
+                    anchor: new google.maps.Point(30, 80)
+                },
+                title: 'موقعك الحالي',
+                animation: google.maps.Animation.DROP
+            });
+        }
+
+        // حساب المسار على الخريطة المدمجة
+        function calculateEmbeddedRoute(origin, destination) {
+            if (!embeddedDirectionsService || !embeddedDirectionsRenderer || !embeddedMap) {
+                console.error('❌ خدمات الاتجاهات غير متوفرة');
+                return;
+            }
             
             const request = {
-                origin: currentLocation,
-                destination: destinationCoords,
+                origin: origin,
+                destination: destination,
                 travelMode: google.maps.TravelMode.DRIVING,
-                drivingOptions: {
-                    departureTime: new Date(),
-                    trafficModel: google.maps.TrafficModel.BEST_GUESS
-                },
                 unitSystem: google.maps.UnitSystem.METRIC,
-                provideRouteAlternatives: false
+                provideRouteAlternatives: false,
+                optimizeWaypoints: false
             };
             
-            googleDirectionsService.route(request, (response, status) => {
+            embeddedDirectionsService.route(request, (response, status) => {
                 if (status === google.maps.DirectionsStatus.OK) {
-                    googleDirectionsRenderer.setDirections(response);
-                    currentGoogleMapRoute = response.routes[0];
+                    embeddedDirectionsRenderer.setDirections(response);
                     
-                    // تحديث معلومات المسار
-                    updateGoogleRouteInfo(currentGoogleMapRoute);
+                    const route = response.routes[0];
+                    const leg = route.legs[0];
+                    
+                    // تحديث معلومات المسافة والوقت
+                    document.getElementById('embedded-distance').textContent = 
+                        leg.distance?.text || '0 كم';
+                    
+                    document.getElementById('embedded-duration').textContent = 
+                        leg.duration?.text || '0 دقيقة';
+                    
+                    // إنشاء علامة نقطة البداية
+                    createEmbeddedOriginMarker(origin);
                     
                     // تكبير الخريطة لتناسب المسار
                     const bounds = new google.maps.LatLngBounds();
-                    const route = response.routes[0];
+                    bounds.extend(origin);
+                    bounds.extend(destination);
+                    embeddedMap.fitBounds(bounds);
                     
-                    route.legs.forEach(leg => {
-                        leg.steps.forEach(step => {
-                            bounds.extend(step.start_location);
-                            bounds.extend(step.end_location);
-                        });
-                    });
+                    // إضافة هامش إضافي
+                    embeddedMap.panBy(0, -50);
                     
-                    googleMap.fitBounds(bounds);
                 } else {
-                    console.error('❌ خطأ في حساب المسار:', status);
+                    console.error('❌ Error calculating embedded route:', status);
                     
                     // عرض خط مباشر كبديل
                     const polyline = new google.maps.Polyline({
-                        path: [currentLocation, destinationCoords],
+                        path: [origin, destination],
                         geodesic: true,
                         strokeColor: '#ff6600',
                         strokeOpacity: 0.7,
                         strokeWeight: 3,
-                        map: googleMap
+                        map: embeddedMap
                     });
                     
-                    const bounds = new google.maps.LatLngBounds();
-                    bounds.extend(currentLocation);
-                    bounds.extend(destinationCoords);
-                    googleMap.fitBounds(bounds);
+                    // إنشاء علامات
+                    createEmbeddedOriginMarker(origin);
+                    createEmbeddedDestinationMarker(destination, currentEmbeddedOrder);
                     
-                    // تحديث معلومات المسار التقريبية
+                    const bounds = new google.maps.LatLngBounds();
+                    bounds.extend(origin);
+                    bounds.extend(destination);
+                    embeddedMap.fitBounds(bounds);
+                    
+                    // حساب المسافة التقريبية
                     const distance = calculateDistance(
-                        currentLocation.lat, currentLocation.lng,
-                        destinationCoords.lat, destinationCoords.lng
+                        origin.lat, origin.lng,
+                        destination.lat, destination.lng
                     );
                     
-                    document.getElementById('google-map-distance').textContent = `${distance.toFixed(1)} كم`;
-                    document.getElementById('google-map-duration').textContent = `${Math.round(distance * 10)} دقيقة`;
+                    document.getElementById('embedded-distance').textContent = 
+                        `${distance.toFixed(1)} كم`;
+                    
+                    document.getElementById('embedded-duration').textContent = 
+                        `${Math.round(distance * 10)} دقيقة`;
+                    
+                    // إضافة هامش إضافي
+                    embeddedMap.panBy(0, -50);
                 }
             });
         }
 
-        // تحديث معلومات المسار
-        function updateGoogleRouteInfo(route) {
-            if (!route || !route.legs || route.legs.length === 0) return;
-            
-            const leg = route.legs[0];
-            const distance = leg.distance ? leg.distance.text : '0 كم';
-            const duration = leg.duration ? leg.duration.text : '0 دقيقة';
-            
-            document.getElementById('google-map-distance').textContent = distance;
-            document.getElementById('google-map-duration').textContent = duration;
-        }
-
-        // بدء التنقل باستخدام خرائط جوجل
-        function startNavigationWithGoogleMaps() {
-            if (!currentGoogleMapOrder || !currentGoogleMapOrder.location) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'لا يوجد رابط',
-                    text: 'لا يوجد رابط خرائط متاح لهذا الطلب',
-                    background: '#222',
-                    color: '#fff'
-                });
+        // بدء التنقل من الخريطة المدمجة
+        function startNavigationFromEmbeddedMap() {
+            if (!currentEmbeddedCoords) {
+                showError('لا توجد إحداثيات', 'تعذر تحديد موقع الوجهة');
                 return;
             }
             
-            closeGoogleMaps();
+            closeEmbeddedMaps();
             
-            // افتح رابط خرائط جوجل الأصلي مع التوجيه
-            const coords = validateAndFixCoordinates(currentGoogleMapOrder);
-            if (coords) {
-                const url = `https://www.google.com/maps/dir/?api=1&destination=${coords.lat},${coords.lng}&travelmode=driving&dir_action=navigate`;
-                window.open(url, '_blank');
-                
-                Swal.fire({
-                    icon: 'success',
-                    title: 'تم فتح التوجيه',
-                    text: 'يتم الآن فتح تطبيق خرائط جوجل للتنقل',
-                    timer: 2000,
-                    showConfirmButton: false,
-                    background: '#222',
-                    color: '#fff'
-                });
-            } else {
-                // افتح الرابط الأصلي كبديل
-                window.open(currentGoogleMapOrder.location, '_blank');
+            // استخدام نظام التنقل العادي
+            if (currentEmbeddedOrder) {
+                enhancedNavigateToOrder(currentEmbeddedOrder.id);
             }
         }
 
-        // إغلاق خريطة جوجل
-        function closeGoogleMaps() {
-            document.getElementById('google-maps-modal').classList.remove('active');
-            currentGoogleMapOrder = null;
-            currentGoogleMapRoute = null;
-            googleMap = null;
-            googleDirectionsService = null;
-            googleDirectionsRenderer = null;
-        }
-
-        // فتح خرائط جوجل داخل التطبيق
-        function openGoogleMapsInApp(orderId) {
-            closeNavigationModal();
-            setTimeout(() => {
-                openGoogleMapsForOrder(orderId);
-            }, 300);
+        // إغلاق الخريطة المدمجة
+        function closeEmbeddedMaps() {
+            const container = document.getElementById('embedded-maps-container');
+            container.classList.remove('active');
+            
+            // تنظيف الخريطة
+            if (embeddedMap) {
+                embeddedMap = null;
+            }
+            
+            if (embeddedOriginMarker) {
+                embeddedOriginMarker.setMap(null);
+                embeddedOriginMarker = null;
+            }
+            
+            if (embeddedDestinationMarker) {
+                embeddedDestinationMarker.setMap(null);
+                embeddedDestinationMarker = null;
+            }
+            
+            if (embeddedDirectionsRenderer) {
+                embeddedDirectionsRenderer.setMap(null);
+                embeddedDirectionsRenderer = null;
+            }
+            
+            currentEmbeddedOrder = null;
+            currentEmbeddedCoords = null;
         }
 
         // ==============================================
         // 🚀 نظام التنقل المحسن - إصلاح كامل
         // ==============================================
 
-        // 1. دالة التنقل الرئيسية المحسنة
+        // دالة التنقل الرئيسية المحسنة
         async function enhancedNavigateToOrder(orderId) {
             try {
                 console.log(`🚀 بدء التنقل المحسن للطلب: ${orderId}`);
@@ -2951,650 +2940,8 @@
                     confirmButtonText: 'حسناً',
                     background: '#222',
                     color: '#fff'
-                }).then(() => {
-                    // عرض خيارات التنقل البديلة
-                    showNavigationOptions(order);
                 });
             }
-        }
-
-        // 2. رسم مسار بديل عند فشل خدمة التوجيه
-        function fallbackRouteDrawing(startPoint, endPoint, order) {
-            console.log('🔄 استخدام المسار البديل');
-            
-            // إزالة أي عناصر تحكم سابقة
-            if (routingControl) {
-                map.removeControl(routingControl);
-                routingControl = null;
-            }
-            
-            // رسم خط مباشر بلون برتقالي
-            const directRoute = L.polyline([startPoint, endPoint], {
-                color: '#ff6600',
-                weight: 5,
-                opacity: 0.8,
-                dashArray: '10, 10',
-                lineCap: 'round'
-            }).addTo(map);
-            
-            // إضافة تأثير النبض
-            setInterval(() => {
-                const currentOpacity = directRoute.options.opacity;
-                directRoute.setStyle({
-                    opacity: currentOpacity === 0.8 ? 0.4 : 0.8
-                });
-            }, 1000);
-            
-            // إنشاء علامات مخصصة
-            const driverIcon = L.divIcon({
-                html: `
-                    <div style="background: #ff6600; width: 60px; height: 60px; border-radius: 50%; 
-                                display: flex; align-items: center; justify-content: center; 
-                                color: white; border: 4px solid white; box-shadow: 0 4px 20px rgba(255,102,0,0.5);
-                                animation: pulse 1.5s infinite;">
-                        <i class="fas fa-motorcycle" style="font-size: 26px;"></i>
-                    </div>
-                `,
-                className: 'driver-marker-fallback',
-                iconSize: [60, 60],
-                iconAnchor: [30, 60]
-            });
-            
-            const destinationIcon = L.divIcon({
-                html: `
-                    <div style="background: #00c851; width: 60px; height: 60px; border-radius: 50%; 
-                                display: flex; align-items: center; justify-content: center; 
-                                color: white; border: 4px solid white; box-shadow: 0 4px 20px rgba(0,200,81,0.5);">
-                        <i class="fas fa-home" style="font-size: 26px;"></i>
-                    </div>
-                    <div style="background: white; color: #000; padding: 10px 15px; 
-                                border-radius: 15px; margin-top: 10px; font-weight: bold; 
-                                font-size: 16px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); 
-                                white-space: nowrap; max-width: 250px;">
-                        <i class="fas fa-map-marker-alt"></i> طلب #${order.id}
-                    </div>
-                `,
-                className: 'destination-marker-fallback',
-                iconSize: [60, 60],
-                iconAnchor: [30, 60]
-            });
-            
-            L.marker(startPoint, { icon: driverIcon }).addTo(map)
-                .bindPopup('<div style="font-weight: bold; font-family: Cairo;">موقع السائق الحالي</div>');
-            
-            L.marker(endPoint, { icon: destinationIcon }).addTo(map)
-                .bindPopup(`
-                    <div style="min-width: 250px; font-family: Cairo;">
-                        <h3 style="color: var(--primary);">وجهة التوصيل</h3>
-                        <p><strong>طلب:</strong> #${order.id}</p>
-                        <p><strong>العميل:</strong> ${order.customerName || 'عميل'}</p>
-                        <p><strong>العنوان:</strong> ${order.addressDetails || order.location || 'غير محدد'}</p>
-                        <p><strong>إحداثيات تقريبية:</strong><br>
-                            ${endPoint.lat.toFixed(6)}, ${endPoint.lng.toFixed(6)}
-                        </p>
-                    </div>
-                `);
-            
-            // حساب المسافة التقريبية
-            const distance = calculateDistance(
-                startPoint.lat, startPoint.lng,
-                endPoint.lat, endPoint.lng
-            );
-            
-            // عرض معلومات المسار
-            showCurrentDelivery(order);
-            document.getElementById('current-distance').textContent = `${distance.toFixed(1)} كم`;
-            document.getElementById('current-eta').textContent = `${Math.round(distance * 10)} دقيقة`;
-            
-            // تكبير الخريطة
-            const bounds = L.latLngBounds([startPoint, endPoint]);
-            map.fitBounds(bounds, { padding: [120, 120] });
-            
-            Swal.fire({
-                icon: 'info',
-                title: 'مسار مباشر',
-                html: `
-                    <div style="text-align: center; padding: 10px;">
-                        <div style="margin-bottom: 15px;">
-                            <i class="fas fa-road fa-2x" style="color: var(--warning);"></i>
-                        </div>
-                        <div>تم رسم مسار مباشر إلى العميل</div>
-                        <div style="background: var(--card-light); padding: 10px; border-radius: 8px; margin: 15px 0;">
-                            <div>المسافة: <strong>${distance.toFixed(1)} كم</strong></div>
-                            <div>الوقت المتوقع: <strong>${Math.round(distance * 10)} دقيقة</strong></div>
-                        </div>
-                        <div class="coordinates-info" style="margin-top: 15px;">
-                            <div class="title">إحداثيات الوجهة:</div>
-                            <div class="coords">
-                                ${endPoint.lat.toFixed(6)}, ${endPoint.lng.toFixed(6)}
-                            </div>
-                        </div>
-                        <small style="color: var(--text-gray); margin-top: 10px; display: block;">
-                            اتبع الخط البرتقالي المنقط
-                        </small>
-                    </div>
-                `,
-                timer: 3000,
-                showConfirmButton: false,
-                background: '#222',
-                color: '#fff'
-            });
-        }
-
-        // 3. عرض خيارات التنقل البديلة - محسنة لتوجيه إلى رابط خرائط جوجل الأصلي
-        function showNavigationOptions(order) {
-            const modalBody = document.getElementById('navigation-options');
-            
-            // تحضير الرابط الأصلي للعميل
-            const originalGoogleMapsLink = order.location || '';
-            const coordinatesInfo = order.locationLat && order.locationLng 
-                ? `${order.locationLat.toFixed(6)}, ${order.locationLng.toFixed(6)}`
-                : 'غير متوفر';
-            
-            modalBody.innerHTML = `
-                <div class="navigation-option" onclick="openGoogleMapsInApp(${order.id})">
-                    <div class="nav-icon google">
-                        <i class="fab fa-google"></i>
-                    </div>
-                    <div class="nav-info">
-                        <div class="nav-title">خريطة جوجل داخل التطبيق</div>
-                        <div class="nav-description">فتح خريطة جوجل كاملة داخل التطبيق مع المسار</div>
-                    </div>
-                </div>
-                
-                <div class="navigation-option" onclick="openOriginalGoogleMaps('${encodeURIComponent(originalGoogleMapsLink)}', ${order.id})">
-                    <div class="nav-icon google" style="background: linear-gradient(135deg, #34A853 0%, #2E8B57 100%);">
-                        <i class="fas fa-external-link-alt"></i>
-                    </div>
-                    <div class="nav-info">
-                        <div class="nav-title">فتح رابط جوجل الأصلي</div>
-                        <div class="nav-description">فتح رابط خرائط جوجل الأصلي الذي أرسله العميل</div>
-                    </div>
-                </div>
-                
-                <div class="navigation-option" onclick="openGoogleMapsDirections(${order.locationLat || 0}, ${order.locationLng || 0}, ${order.id})">
-                    <div class="nav-icon google" style="background: linear-gradient(135deg, #4285F4 0%, #3367D6 100%);">
-                        <i class="fas fa-directions"></i>
-                    </div>
-                    <div class="nav-info">
-                        <div class="nav-title">توجيه خرائط جوجل</div>
-                        <div class="nav-description">فتح تطبيق خرائط جوجل مع التوجيه من موقعك الحالي</div>
-                    </div>
-                </div>
-                
-                <div class="navigation-option" onclick="openWaze(${order.locationLat || 0}, ${order.locationLng || 0}, ${order.id})">
-                    <div class="nav-icon waze">
-                        <i class="fab fa-waze"></i>
-                    </div>
-                    <div class="nav-info">
-                        <div class="nav-title">تطبيق Waze</div>
-                        <div class="nav-description">فتح في تطبيق Waze للملاحة</div>
-                    </div>
-                </div>
-            `;
-            
-            document.getElementById('navigation-modal').classList.add('active');
-        }
-
-        // 4. وظائف التنقل الخارجية - محسنة
-
-        // فتح رابط خرائط جوجل الأصلي كما هو
-        function openOriginalGoogleMaps(encodedUrl, orderId) {
-            try {
-                const originalUrl = decodeURIComponent(encodedUrl);
-                
-                if (!originalUrl || originalUrl.trim() === '') {
-                    throw new Error('لا يوجد رابط خرائط جوجل متوفر');
-                }
-                
-                // فتح الرابط الأصلي في نافذة جديدة
-                window.open(originalUrl, '_blank');
-                closeNavigationModal();
-                
-                Swal.fire({
-                    icon: 'success',
-                    title: 'تم فتح رابط الخرائط الأصلي',
-                    text: `تم فتح الرابط الذي أرسله العميل للطلب #${orderId}`,
-                    timer: 2000,
-                    showConfirmButton: false,
-                    background: '#222',
-                    color: '#fff'
-                });
-            } catch (error) {
-                console.error('❌ خطأ في فتح رابط الخرائط الأصلي:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'خطأ',
-                    text: 'تعذر فتح رابط الخرائط الأصلي',
-                    background: '#222',
-                    color: '#fff'
-                });
-            }
-        }
-
-        // فخرائط جوجل مع التوجيه
-        function openGoogleMapsDirections(lat, lng, orderId) {
-            if (!lat || !lng || lat === 0 || lng === 0) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'لا توجد إحداثيات',
-                    text: 'تعذر تحديد موقع العميل',
-                    background: '#222',
-                    color: '#fff'
-                });
-                return;
-            }
-            
-            const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving&dir_action=navigate`;
-            window.open(url, '_blank');
-            closeNavigationModal();
-            
-            Swal.fire({
-                icon: 'success',
-                title: 'تم فتح خرائط جوجل',
-                text: `سيتم توجيهك إلى موقع الطلب #${orderId}`,
-                timer: 2000,
-                showConfirmButton: false,
-                background: '#222',
-                color: '#fff'
-            });
-        }
-        
-        function openWaze(lat, lng, orderId) {
-            if (!lat || !lng || lat === 0 || lng === 0) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'لا توجد إحداثيات',
-                    text: 'تعذر تحديد موقع العميل',
-                    background: '#222',
-                    color: '#fff'
-                });
-                return;
-            }
-            
-            const url = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
-            window.open(url, '_blank');
-            closeNavigationModal();
-            
-            Swal.fire({
-                icon: 'success',
-                title: 'تم فتح تطبيق Waze',
-                text: `سيتم توجيهك إلى موقع الطلب #${orderId}`,
-                timer: 2000,
-                showConfirmButton: false,
-                background: '#222',
-                color: '#fff'
-            });
-        }
-        
-        function openAppleMaps(lat, lng, orderId) {
-            if (!lat || !lng || lat === 0 || lng === 0) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'لا توجد إحداثيات',
-                    text: 'تعذر تحديد موقع العميل',
-                    background: '#222',
-                    color: '#fff'
-                });
-                return;
-            }
-            
-            const url = `https://maps.apple.com/?daddr=${lat},${lng}&dirflg=d`;
-            window.open(url, '_blank');
-            closeNavigationModal();
-            
-            Swal.fire({
-                icon: 'success',
-                title: 'تم فتح خرائط أبل',
-                text: `سيتم توجيهك إلى موقع الطلب #${orderId}`,
-                timer: 2000,
-                showConfirmButton: false,
-                background: '#222',
-                    color: '#fff'
-            });
-        }
-        
-        function showCoordinatesInfo(lat, lng, orderId) {
-            if (!lat || !lng || lat === 0 || lng === 0) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'لا توجد إحداثيات',
-                    text: 'تعذر تحديد موقع العميل',
-                    background: '#222',
-                    color: '#fff'
-                });
-                return;
-            }
-            
-            closeNavigationModal();
-            
-            Swal.fire({
-                title: 'إحداثيات الموقع',
-                html: `
-                    <div style="text-align: center; padding: 10px;">
-                        <div style="margin-bottom: 15px;">
-                            <i class="fas fa-map-marker-alt fa-2x" style="color: var(--primary);"></i>
-                        </div>
-                        <div style="font-size: 1.1rem; margin-bottom: 10px;">
-                            إحداثيات الطلب #${orderId}
-                        </div>
-                        <div style="background: var(--card-light); padding: 15px; border-radius: 10px; margin: 15px 0;">
-                            <div style="font-family: monospace; font-size: 1.2rem; direction: ltr;">
-                                ${lat.toFixed(6)}, ${lng.toFixed(6)}
-                            </div>
-                        </div>
-                        <div style="color: var(--text-gray); font-size: 0.9rem; margin-bottom: 20px;">
-                            يمكنك نسخ الإحداثيات واستخدامها في أي تطبيق خرائط
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                            <button id="copy-coords" style="background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; cursor: pointer;">
-                                <i class="fas fa-copy"></i> نسخ
-                            </button>
-                            <button onclick="openGoogleMapsDirections(${lat}, ${lng}, ${orderId})" style="background: #4285F4; color: white; border: none; padding: 12px; border-radius: 10px; cursor: pointer;">
-                                <i class="fab fa-google"></i> توجيه خرائط جوجل
-                            </button>
-                        </div>
-                    </div>
-                `,
-                showConfirmButton: false,
-                background: '#222',
-                color: '#fff',
-                didOpen: () => {
-                    document.getElementById('copy-coords').addEventListener('click', () => {
-                        navigator.clipboard.writeText(`${lat}, ${lng}`).then(() => {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'تم النسخ',
-                                text: 'تم نسخ الإحداثيات إلى الحافظة',
-                                timer: 1500,
-                                showConfirmButton: false,
-                                background: '#222',
-                                color: '#fff'
-                            });
-                        });
-                    });
-                }
-            });
-        }
-
-        // 5. إغلاق نافذة التنقل
-        function closeNavigationModal() {
-            document.getElementById('navigation-modal').classList.remove('active');
-        }
-
-        // 6. تحديث واجهة المستخدم للمسار
-        function updateRouteUI(route) {
-            if (!route) return;
-            
-            const distance = (route.summary.totalDistance / 1000).toFixed(1);
-            const time = Math.round(route.summary.totalTime / 60);
-            
-            // تحديث شريط التقدم
-            const progressBar = document.getElementById('delivery-progress');
-            if (progressBar) {
-                progressBar.style.width = '0%';
-                setTimeout(() => {
-                    progressBar.style.width = '50%';
-                }, 300);
-            }
-            
-            // تحديث معلومات التوصيل
-            document.getElementById('current-distance').textContent = `${distance} كم`;
-            document.getElementById('current-eta').textContent = `${time} دقيقة`;
-        }
-
-        // 7. دالة مساعدة لحساب المسافة بين نقطتين
-        function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371; // نصف قطر الأرض بالكيلومترات
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = 
-                Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c;
-        }
-
-        // 8. استبدال دالة showNavigation القديمة بالدالة المحسنة
-        function showNavigation(orderId) {
-            // البحث عن الطلب أولاً
-            const order = [...activeOrders, ...pickedOrders].find(o => o.id == orderId);
-            if (!order) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'الطلب غير موجود',
-                    text: 'لم يتم العثور على الطلب المحدد',
-                    background: '#222',
-                    color: '#fff'
-                });
-                return;
-            }
-            
-            // عرض خيارات التنقل
-            Swal.fire({
-                title: 'اختر طريقة التنقل',
-                html: `
-                    <div style="text-align: center; padding: 10px;">
-                        <div style="font-size: 1.1rem; margin-bottom: 20px;">
-                            الطلب #${order.id}<br>
-                            <small style="color: var(--text-gray);">${order.customerName || 'العميل'}</small>
-                        </div>
-                        
-                        <div style="display: grid; gap: 12px; margin-bottom: 20px;">
-                            <button class="nav-choice-btn" data-choice="google_maps_inapp" style="background: linear-gradient(135deg, #4285F4 0%, #3367D6 100%); 
-                                    color: white; padding: 16px; border: none; border-radius: 12px; cursor: pointer; font-family: Cairo; font-size: 1rem; font-weight: bold; text-align: right; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                                <i class="fab fa-google"></i> خريطة جوجل داخل التطبيق
-                            </button>
-                            
-                            <button class="nav-choice-btn" data-choice="original_google" style="background: linear-gradient(135deg, #34A853 0%, #2E8B57 100%); 
-                                    color: white; padding: 16px; border: none; border-radius: 12px; cursor: pointer; font-family: Cairo; font-size: 1rem; font-weight: bold; text-align: right; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                                <i class="fas fa-external-link-alt"></i> رابط خرائط جوجل الأصلي
-                            </button>
-                            
-                            <button class="nav-choice-btn" data-choice="osrm" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); 
-                                    color: white; padding: 16px; border: none; border-radius: 12px; cursor: pointer; font-family: Cairo; font-size: 1rem; font-weight: bold; text-align: right; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                                <i class="fas fa-route"></i> خريطة داخلية (OSRM)
-                            </button>
-                            
-                            <button class="nav-choice-btn" data-choice="google_directions" style="background: linear-gradient(135deg, #FBBC05 0%, #F9AB00 100%); 
-                                    color: white; padding: 16px; border: none; border-radius: 12px; cursor: pointer; font-family: Cairo; font-size: 1rem; font-weight: bold; text-align: right; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                                <i class="fas fa-directions"></i> توجيه خرائط جوجل
-                            </button>
-                            
-                            <button class="nav-choice-btn" data-choice="waze" style="background: linear-gradient(135deg, #3337FF 0%, #2A2BD6 100%); 
-                                    color: white; padding: 16px; border: none; border-radius: 12px; cursor: pointer; font-family: Cairo; font-size: 1rem; font-weight: bold; text-align: right; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                                <i class="fab fa-waze"></i> تطبيق Waze
-                            </button>
-                        </div>
-                        
-                        <div style="font-size: 0.85rem; color: var(--text-gray); padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px;">
-                            <i class="fas fa-info-circle"></i> الخيار الأول يفتح خريطة جوجل كاملة داخل التطبيق
-                        </div>
-                    </div>
-                `,
-                showConfirmButton: false,
-                showCancelButton: true,
-                cancelButtonText: 'إلغاء',
-                background: '#222',
-                color: '#fff',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    document.querySelectorAll('.nav-choice-btn').forEach(btn => {
-                        btn.addEventListener('click', () => {
-                            Swal.close();
-                            const choice = btn.dataset.choice;
-                            handleNavigationChoice(choice, orderId, order);
-                        });
-                    });
-                }
-            });
-        }
-
-        // 9. معالجة اختيار طريقة التنقل
-        function handleNavigationChoice(choice, orderId, order) {
-            switch(choice) {
-                case 'google_maps_inapp':
-                    openGoogleMapsInApp(orderId);
-                    break;
-                    
-                case 'original_google':
-                    // فتح رابط خرائط جوجل الأصلي
-                    const encodedUrl = encodeURIComponent(order.location || '');
-                    openOriginalGoogleMaps(encodedUrl, orderId);
-                    break;
-                    
-                case 'osrm':
-                    enhancedNavigateToOrder(orderId);
-                    break;
-                    
-                case 'google_directions':
-                    const coords = validateAndFixCoordinates(order);
-                    if (coords) {
-                        openGoogleMapsDirections(coords.lat, coords.lng, orderId);
-                    }
-                    break;
-                    
-                case 'waze':
-                    const coords2 = validateAndFixCoordinates(order);
-                    if (coords2) {
-                        openWaze(coords2.lat, coords2.lng, orderId);
-                    }
-                    break;
-            }
-        }
-
-        // 10. تحديث دالة updateMapMarkers مع نظام الإحداثيات المحسن
-        function updateMapMarkers() {
-            orderMarkers.forEach(marker => map.removeLayer(marker));
-            orderMarkers = [];
-            
-            const ordersToShow = [...activeOrders, ...pickedOrders];
-            
-            ordersToShow.forEach(order => {
-                const coords = validateAndFixCoordinates(order);
-                if (!coords) {
-                    console.warn(`⚠️ لا توجد إحداثيات للطلب ${order.id}`);
-                    return;
-                }
-                
-                let iconColor = '';
-                let icon = '';
-                let className = '';
-                
-                if (order.status === 'Picked') {
-                    iconColor = '#9c27b0';
-                    icon = 'fas fa-motorcycle';
-                    className = 'order-picked';
-                } else if (order.status === 'Ready') {
-                    iconColor = '#00c851';
-                    icon = 'fas fa-check';
-                    className = 'order-ready';
-                } else {
-                    iconColor = '#33b5e5';
-                    icon = 'fas fa-clock';
-                    className = 'order-new';
-                }
-                
-                const markerIcon = L.divIcon({
-                    html: `
-                        <div style="background: ${iconColor}; width: 45px; height: 45px; border-radius: 50%; 
-                                    display: flex; align-items: center; justify-content: center; 
-                                    color: white; border: 3px solid white; box-shadow: 0 3px 15px rgba(0,0,0,0.4);
-                                    animation: ${order.status === 'Ready' ? 'pulse 1.5s infinite' : 'none'}">
-                            <i class="${icon}" style="font-size: 20px;"></i>
-                        </div>
-                        <div style="background: white; color: #000; padding: 6px 12px; border-radius: 12px; 
-                                    margin-top: 8px; font-weight: bold; font-size: 13px; 
-                                    box-shadow: 0 3px 12px rgba(0,0,0,0.2); white-space: nowrap;">
-                            <i class="fas fa-hashtag"></i> ${order.id}
-                        </div>
-                    `,
-                    className: `order-marker ${className}`,
-                    iconSize: [45, 45],
-                    iconAnchor: [22.5, 45],
-                    popupAnchor: [0, -45]
-                });
-                
-                const marker = L.marker([coords.lat, coords.lng], { 
-                    icon: markerIcon,
-                    orderId: order.id
-                }).addTo(map);
-                
-                marker.bindPopup(`
-                    <div style="text-align: right; direction: rtl; font-family: Cairo; min-width: 280px; padding: 15px;">
-                        <div style="border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 15px;">
-                            <h3 style="margin: 0; color: var(--primary); font-size: 18px;">
-                                <i class="fas fa-box"></i> طلب #${order.id}
-                            </h3>
-                            <div style="color: var(--text-gray); font-size: 13px; margin-top: 5px;">
-                                <i class="fas fa-user"></i> ${order.customerName || 'عميل'}
-                            </div>
-                        </div>
-                        
-                        <div style="margin-bottom: 15px;">
-                            <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                                <i class="fas fa-map-marker-alt" style="color: var(--danger); margin-left: 8px;"></i>
-                                <div>
-                                    <div style="font-weight: bold; font-size: 14px;">العنوان:</div>
-                                    <div style="color: var(--text-gray); font-size: 13px;">
-                                        ${order.addressDetails || 'غير محدد'}
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                                <i class="fas fa-phone" style="color: var(--success); margin-left: 8px;"></i>
-                                <div>
-                                    <div style="font-weight: bold; font-size: 14px;">الهاتف:</div>
-                                    <div style="color: var(--text-gray); font-size: 13px; direction: ltr;">
-                                        ${order.phone || 'غير متوفر'}
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div style="display: flex; align-items: center;">
-                                <i class="fas fa-coins" style="color: var(--warning); margin-left: 8px;"></i>
-                                <div>
-                                    <div style="font-weight: bold; font-size: 14px;">الإجمالي:</div>
-                                    <div style="color: var(--text-gray); font-size: 13px;">
-                                        ${order.total || '0.000'} د.ك
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div style="background: rgba(255, 102, 0, 0.1); padding: 10px; border-radius: 8px; margin: 15px 0; font-size: 12px;">
-                            <div style="color: var(--primary); font-weight: bold; margin-bottom: 5px;">
-                                <i class="fas fa-map"></i> الإحداثيات:
-                            </div>
-                            <div style="font-family: monospace; direction: ltr; text-align: center; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 4px;">
-                                ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}
-                            </div>
-                        </div>
-                        
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px;">
-                            <button onclick="showNavigation(${order.id}); this.closest('.leaflet-popup')._close();" 
-                                    style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); 
-                                            color: white; border: none; padding: 12px; border-radius: 10px; 
-                                            cursor: pointer; font-family: Cairo; font-size: 13px; font-weight: bold;">
-                                <i class="fas fa-directions"></i> تنقل
-                            </button>
-                            
-                            ${order.phone ? `
-                            <button onclick="callCustomer(${order.id}); this.closest('.leaflet-popup')._close();" 
-                                    style="background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%); 
-                                            color: white; border: none; padding: 12px; border-radius: 10px; 
-                                            cursor: pointer; font-family: Cairo; font-size: 13px; font-weight: bold;">
-                                <i class="fas fa-phone"></i> اتصل
-                            </button>
-                            ` : ''}
-                        </div>
-                    </div>
-                `);
-                
-                orderMarkers.push(marker);
-            });
         }
 
         // بقية الكود بدون تغيير...
@@ -4518,12 +3865,15 @@
                                 <button class="order-action-btn action-details" onclick="event.stopPropagation(); showOrderDetails(${order.id})">
                                     <i class="fas fa-info-circle"></i> تفاصيل
                                 </button>
+                                <button class="order-action-btn action-navigate" onclick="event.stopPropagation(); openEmbeddedNavigation(${order.id})">
+                                    <i class="fab fa-google"></i> خرائط داخلية
+                                </button>
                             ` : order.status === 'Picked' ? `
                                 <button class="order-action-btn action-deliver" onclick="event.stopPropagation(); markDelivered(${order.id})">
                                     <i class="fas fa-check-circle"></i> تم التوصيل
                                 </button>
-                                <button class="order-action-btn action-navigate" onclick="event.stopPropagation(); showNavigation(${order.id})">
-                                    <i class="fas fa-directions"></i> تنقل
+                                <button class="order-action-btn action-navigate" onclick="event.stopPropagation(); openEmbeddedNavigation(${order.id})">
+                                    <i class="fab fa-google"></i> خرائط داخلية
                                 </button>
                                 <button class="order-action-btn action-call" onclick="event.stopPropagation(); callCustomer(${order.id})">
                                     <i class="fas fa-phone"></i> اتصل بالعميل
@@ -4732,9 +4082,9 @@
                         <br>
                         <small style="color: var(--text-gray);">
                             <i class="fas fa-external-link-alt"></i>
-                            <a href="javascript:void(0);" onclick="openOriginalGoogleMapsFromDetails('${encodeURIComponent(order.location || '')}', ${order.id})" 
+                            <a href="javascript:void(0);" onclick="openEmbeddedNavigation(${order.id})" 
                                style="color: var(--primary); text-decoration: none;">
-                                فتح رابط الخرائط الأصلي
+                                فتح خرائط داخلية
                             </a>
                         </small>
                     </div>
@@ -4749,6 +4099,15 @@
                     </button>
                 </div>
             ` : '';
+            
+            // زر عرض الخريطة المدمجة
+            const mapButton = `
+                <div style="margin-top: 15px;">
+                    <button class="order-action-btn action-navigate" style="width: 100%;" onclick="openEmbeddedNavigation(${order.id}); closeOrderModal();">
+                        <i class="fab fa-google"></i> عرض خرائط داخلية
+                    </button>
+                </div>
+            `;
             
             const modalBody = document.getElementById('order-modal-body');
             modalBody.innerHTML = `
@@ -4794,6 +4153,7 @@
                         ${locationInfo}
                     </div>
                     ${callButton}
+                    ${mapButton}
                 </div>
                 
                 <div class="order-detail-section">
@@ -4828,12 +4188,6 @@
             `;
             
             document.getElementById('order-modal').classList.add('active');
-        }
-
-        // فتح رابط خرائط جوجل الأصلي من تفاصيل الطلب
-        function openOriginalGoogleMapsFromDetails(encodedUrl, orderId) {
-            closeOrderModal();
-            openOriginalGoogleMaps(encodedUrl, orderId);
         }
         
         // Pick an order (mark as picked up)
@@ -4893,9 +4247,9 @@
                         
                         const order = [...activeOrders, ...pickedOrders].find(o => o.id == orderId);
                         if (order) {
-                            // عرض خيارات التنقل بعد الاستلام
+                            // عرض خرائط جوجل المدمجة بعد الاستلام
                             setTimeout(() => {
-                                showNavigation(orderId);
+                                openEmbeddedNavigation(orderId);
                             }, 500);
                         }
                     } else {
@@ -5265,6 +4619,296 @@
         
         function closeOrderModal() {
             document.getElementById('order-modal').classList.remove('active');
+        }
+        
+        // Helper function for calculating distance
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // نصف قطر الأرض بالكيلومترات
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+        
+        // Helper function for fallback route drawing
+        function fallbackRouteDrawing(startPoint, endPoint, order) {
+            console.log('🔄 استخدام المسار البديل');
+            
+            // إزالة أي عناصر تحكم سابقة
+            if (routingControl) {
+                map.removeControl(routingControl);
+                routingControl = null;
+            }
+            
+            // رسم خط مباشر بلون برتقالي
+            const directRoute = L.polyline([startPoint, endPoint], {
+                color: '#ff6600',
+                weight: 5,
+                opacity: 0.8,
+                dashArray: '10, 10',
+                lineCap: 'round'
+            }).addTo(map);
+            
+            // إضافة تأثير النبض
+            setInterval(() => {
+                const currentOpacity = directRoute.options.opacity;
+                directRoute.setStyle({
+                    opacity: currentOpacity === 0.8 ? 0.4 : 0.8
+                });
+            }, 1000);
+            
+            // إنشاء علامات مخصصة
+            const driverIcon = L.divIcon({
+                html: `
+                    <div style="background: #ff6600; width: 60px; height: 60px; border-radius: 50%; 
+                                display: flex; align-items: center; justify-content: center; 
+                                color: white; border: 4px solid white; box-shadow: 0 4px 20px rgba(255,102,0,0.5);
+                                animation: pulse 1.5s infinite;">
+                        <i class="fas fa-motorcycle" style="font-size: 26px;"></i>
+                    </div>
+                `,
+                className: 'driver-marker-fallback',
+                iconSize: [60, 60],
+                iconAnchor: [30, 60]
+            });
+            
+            const destinationIcon = L.divIcon({
+                html: `
+                    <div style="background: #00c851; width: 60px; height: 60px; border-radius: 50%; 
+                                display: flex; align-items: center; justify-content: center; 
+                                color: white; border: 4px solid white; box-shadow: 0 4px 20px rgba(0,200,81,0.5);">
+                        <i class="fas fa-home" style="font-size: 26px;"></i>
+                    </div>
+                    <div style="background: white; color: #000; padding: 10px 15px; 
+                                border-radius: 15px; margin-top: 10px; font-weight: bold; 
+                                font-size: 16px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); 
+                                white-space: nowrap; max-width: 250px;">
+                        <i class="fas fa-map-marker-alt"></i> طلب #${order.id}
+                    </div>
+                `,
+                className: 'destination-marker-fallback',
+                iconSize: [60, 60],
+                iconAnchor: [30, 60]
+            });
+            
+            L.marker(startPoint, { icon: driverIcon }).addTo(map)
+                .bindPopup('<div style="font-weight: bold; font-family: Cairo;">موقع السائق الحالي</div>');
+            
+            L.marker(endPoint, { icon: destinationIcon }).addTo(map)
+                .bindPopup(`
+                    <div style="min-width: 250px; font-family: Cairo;">
+                        <h3 style="color: var(--primary);">وجهة التوصيل</h3>
+                        <p><strong>طلب:</strong> #${order.id}</p>
+                        <p><strong>العميل:</strong> ${order.customerName || 'عميل'}</p>
+                        <p><strong>العنوان:</strong> ${order.addressDetails || order.location || 'غير محدد'}</p>
+                        <p><strong>إحداثيات تقريبية:</strong><br>
+                            ${endPoint.lat.toFixed(6)}, ${endPoint.lng.toFixed(6)}
+                        </p>
+                    </div>
+                `);
+            
+            // حساب المسافة التقريبية
+            const distance = calculateDistance(
+                startPoint.lat, startPoint.lng,
+                endPoint.lat, endPoint.lng
+            );
+            
+            // عرض معلومات المسار
+            showCurrentDelivery(order);
+            document.getElementById('current-distance').textContent = `${distance.toFixed(1)} كم`;
+            document.getElementById('current-eta').textContent = `${Math.round(distance * 10)} دقيقة`;
+            
+            // تكبير الخريطة
+            const bounds = L.latLngBounds([startPoint, endPoint]);
+            map.fitBounds(bounds, { padding: [120, 120] });
+            
+            Swal.fire({
+                icon: 'info',
+                title: 'مسار مباشر',
+                html: `
+                    <div style="text-align: center; padding: 10px;">
+                        <div style="margin-bottom: 15px;">
+                            <i class="fas fa-road fa-2x" style="color: var(--warning);"></i>
+                        </div>
+                        <div>تم رسم مسار مباشر إلى العميل</div>
+                        <div style="background: var(--card-light); padding: 10px; border-radius: 8px; margin: 15px 0;">
+                            <div>المسافة: <strong>${distance.toFixed(1)} كم</strong></div>
+                            <div>الوقت المتوقع: <strong>${Math.round(distance * 10)} دقيقة</strong></div>
+                        </div>
+                        <div class="coordinates-info" style="margin-top: 15px;">
+                            <div class="title">إحداثيات الوجهة:</div>
+                            <div class="coords">
+                                ${endPoint.lat.toFixed(6)}, ${endPoint.lng.toFixed(6)}
+                            </div>
+                        </div>
+                        <small style="color: var(--text-gray); margin-top: 10px; display: block;">
+                            اتبع الخط البرتقالي المنقط
+                        </small>
+                    </div>
+                `,
+                timer: 3000,
+                showConfirmButton: false,
+                background: '#222',
+                color: '#fff'
+            });
+        }
+        
+        // Helper function for updating route UI
+        function updateRouteUI(route) {
+            if (!route) return;
+            
+            const distance = (route.summary.totalDistance / 1000).toFixed(1);
+            const time = Math.round(route.summary.totalTime / 60);
+            
+            // تحديث شريط التقدم
+            const progressBar = document.getElementById('delivery-progress');
+            if (progressBar) {
+                progressBar.style.width = '0%';
+                setTimeout(() => {
+                    progressBar.style.width = '50%';
+                }, 300);
+            }
+            
+            // تحديث معلومات التوصيل
+            document.getElementById('current-distance').textContent = `${distance} كم`;
+            document.getElementById('current-eta').textContent = `${time} دقيقة`;
+        }
+        
+        // Update map markers
+        function updateMapMarkers() {
+            orderMarkers.forEach(marker => map.removeLayer(marker));
+            orderMarkers = [];
+            
+            const ordersToShow = [...activeOrders, ...pickedOrders];
+            
+            ordersToShow.forEach(order => {
+                const coords = validateAndFixCoordinates(order);
+                if (!coords) {
+                    console.warn(`⚠️ لا توجد إحداثيات للطلب ${order.id}`);
+                    return;
+                }
+                
+                let iconColor = '';
+                let icon = '';
+                let className = '';
+                
+                if (order.status === 'Picked') {
+                    iconColor = '#9c27b0';
+                    icon = 'fas fa-motorcycle';
+                    className = 'order-picked';
+                } else if (order.status === 'Ready') {
+                    iconColor = '#00c851';
+                    icon = 'fas fa-check';
+                    className = 'order-ready';
+                } else {
+                    iconColor = '#33b5e5';
+                    icon = 'fas fa-clock';
+                    className = 'order-new';
+                }
+                
+                const markerIcon = L.divIcon({
+                    html: `
+                        <div style="background: ${iconColor}; width: 45px; height: 45px; border-radius: 50%; 
+                                    display: flex; align-items: center; justify-content: center; 
+                                    color: white; border: 3px solid white; box-shadow: 0 3px 15px rgba(0,0,0,0.4);
+                                    animation: ${order.status === 'Ready' ? 'pulse 1.5s infinite' : 'none'}">
+                            <i class="${icon}" style="font-size: 20px;"></i>
+                        </div>
+                        <div style="background: white; color: #000; padding: 6px 12px; border-radius: 12px; 
+                                    margin-top: 8px; font-weight: bold; font-size: 13px; 
+                                    box-shadow: 0 3px 12px rgba(0,0,0,0.2); white-space: nowrap;">
+                            <i class="fas fa-hashtag"></i> ${order.id}
+                        </div>
+                    `,
+                    className: `order-marker ${className}`,
+                    iconSize: [45, 45],
+                    iconAnchor: [22.5, 45],
+                    popupAnchor: [0, -45]
+                });
+                
+                const marker = L.marker([coords.lat, coords.lng], { 
+                    icon: markerIcon,
+                    orderId: order.id
+                }).addTo(map);
+                
+                marker.bindPopup(`
+                    <div style="text-align: right; direction: rtl; font-family: Cairo; min-width: 280px; padding: 15px;">
+                        <div style="border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 15px;">
+                            <h3 style="margin: 0; color: var(--primary); font-size: 18px;">
+                                <i class="fas fa-box"></i> طلب #${order.id}
+                            </h3>
+                            <div style="color: var(--text-gray); font-size: 13px; margin-top: 5px;">
+                                <i class="fas fa-user"></i> ${order.customerName || 'عميل'}
+                            </div>
+                        </div>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                <i class="fas fa-map-marker-alt" style="color: var(--danger); margin-left: 8px;"></i>
+                                <div>
+                                    <div style="font-weight: bold; font-size: 14px;">العنوان:</div>
+                                    <div style="color: var(--text-gray); font-size: 13px;">
+                                        ${order.addressDetails || 'غير محدد'}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                <i class="fas fa-phone" style="color: var(--success); margin-left: 8px;"></i>
+                                <div>
+                                    <div style="font-weight: bold; font-size: 14px;">الهاتف:</div>
+                                    <div style="color: var(--text-gray); font-size: 13px; direction: ltr;">
+                                        ${order.phone || 'غير متوفر'}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div style="display: flex; align-items: center;">
+                                <i class="fas fa-coins" style="color: var(--warning); margin-left: 8px;"></i>
+                                <div>
+                                    <div style="font-weight: bold; font-size: 14px;">الإجمالي:</div>
+                                    <div style="color: var(--text-gray); font-size: 13px;">
+                                        ${order.total || '0.000'} د.ك
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="background: rgba(255, 102, 0, 0.1); padding: 10px; border-radius: 8px; margin: 15px 0; font-size: 12px;">
+                            <div style="color: var(--primary); font-weight: bold; margin-bottom: 5px;">
+                                <i class="fas fa-map"></i> الإحداثيات:
+                            </div>
+                            <div style="font-family: monospace; direction: ltr; text-align: center; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 4px;">
+                                ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}
+                            </div>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px;">
+                            <button onclick="openEmbeddedNavigation(${order.id}); this.closest('.leaflet-popup')._close();" 
+                                    style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); 
+                                            color: white; border: none; padding: 12px; border-radius: 10px; 
+                                            cursor: pointer; font-family: Cairo; font-size: 13px; font-weight: bold;">
+                                <i class="fab fa-google"></i> خرائط داخلية
+                            </button>
+                            
+                            ${order.phone ? `
+                            <button onclick="callCustomer(${order.id}); this.closest('.leaflet-popup')._close();" 
+                                    style="background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%); 
+                                            color: white; border: none; padding: 12px; border-radius: 10px; 
+                                            cursor: pointer; font-family: Cairo; font-size: 13px; font-weight: bold;">
+                                <i class="fas fa-phone"></i> اتصل
+                            </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `);
+                
+                orderMarkers.push(marker);
+            });
         }
         
         // Initialize app
