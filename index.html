@@ -2122,55 +2122,73 @@
         let lastTime = 0;
         
         // ==============================================
-        // 🗺️ نظام فتح خرائط جوجل داخل التطبيق - محسن
+        // 🗺️ نظام فتح خرائط جوجل داخل التطبيق - محسن ومُصلح
         // ==============================================
 
-        // 1. دالة لمعالجة رابط خرائط جوجل لفتحه داخل iframe
+        // 1. دالة محسنة لمعالجة رابط خرائط جوجل لفتحه داخل iframe
         function processGoogleMapsUrlForEmbedding(url) {
             if (!url || url.trim() === '') {
+                console.warn('⚠️ رابط خرائط جوجل فارغ');
                 return null;
             }
             
+            console.log('🔗 معالجة رابط الخرائط:', url);
+            
             let processedUrl = url.trim();
             
-            // تحويل رابط خرائط جوجل إلى نسخة مبسطة للعرض في iframe
-            // إزالة أي معلمات قد تسبب مشاكل في الـ iframe
-            processedUrl = processedUrl.replace(/\/embed\?/, '/');
-            processedUrl = processedUrl.replace(/\/@/, '/place/');
+            // إذا كان الرابط يحتوي على إحداثيات مباشرة (@lat,lng)
+            const coordsMatch = processedUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+            if (coordsMatch) {
+                const lat = coordsMatch[1];
+                const lng = coordsMatch[2];
+                console.log(`📍 تم استخراج الإحداثيات: ${lat}, ${lng}`);
+                
+                // استخدام Google Maps Embed API مع مفتاح عام للاختبار
+                // ملاحظة: في الإنتاج، يجب استخدام مفتاح API خاص بك
+                processedUrl = `https://www.google.com/maps/embed/v1/view?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&center=${lat},${lng}&zoom=15&language=ar&maptype=roadmap`;
+                console.log('✅ تم تحويل الرابط إلى رابط مضمن');
+                return processedUrl;
+            }
             
-            // إذا كان الرابط يحتوي على إحداثيات مباشرة
-            if (processedUrl.includes('@') && processedUrl.includes(',')) {
-                // استخراج الإحداثيات من الرابط
-                const coordsMatch = processedUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-                if (coordsMatch) {
-                    const lat = coordsMatch[1];
-                    const lng = coordsMatch[2];
-                    // إنشاء رابط مبسط
-                    processedUrl = `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${lat},${lng}&center=${lat},${lng}&zoom=15&language=ar&maptype=roadmap`;
-                }
-            } else if (processedUrl.includes('maps.google.com') || processedUrl.includes('google.com/maps')) {
-                // إذا كان رابط خرائط جوجل عادي
-                if (!processedUrl.includes('embed')) {
-                    // تحويل الرابط إلى نسخة embed
-                    processedUrl = processedUrl.replace('https://www.google.com/maps/', 'https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=');
-                    processedUrl += '&language=ar&maptype=roadmap&zoom=15';
+            // إذا كان رابط Google Maps عاديًا
+            if (processedUrl.includes('google.com/maps/place/')) {
+                // استخراج اسم المكان من الرابط
+                const placeMatch = processedUrl.match(/maps\/place\/([^/@]+)/);
+                if (placeMatch) {
+                    const placeName = encodeURIComponent(placeMatch[1]);
+                    processedUrl = `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${placeName}&language=ar&maptype=roadmap&zoom=15`;
+                    console.log('✅ تم تحويل رابط المكان إلى رابط مضمن');
+                    return processedUrl;
                 }
             }
             
-            // إضافة معلمات لتحسين العرض في iframe
-            if (!processedUrl.includes('?')) {
-                processedUrl += '?';
-            } else {
-                processedUrl += '&';
+            // إذا كان رابط Google Maps مع إحداثيات في query parameters
+            const qParamMatch = processedUrl.match(/[?&]q=([^&]+)/);
+            if (qParamMatch) {
+                const query = qParamMatch[1];
+                processedUrl = `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${query}&language=ar&maptype=roadmap&zoom=15`;
+                console.log('✅ تم تحويل رابط البحث إلى رابط مضمن');
+                return processedUrl;
             }
             
-            // إضافة معلمات لتحسين العرض
-            processedUrl += 'output=embed&hl=ar';
+            // إذا كان الرابط يحتوي على رابط مضمن بالفعل
+            if (processedUrl.includes('/embed')) {
+                // التأكد من وجود مفتاح API
+                if (!processedUrl.includes('key=')) {
+                    // إضافة مفتاح API إذا لم يكن موجودًا
+                    const separator = processedUrl.includes('?') ? '&' : '?';
+                    processedUrl += `${separator}key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8`;
+                }
+                console.log('✅ الرابط مضمن بالفعل، تم تحديثه');
+                return processedUrl;
+            }
             
-            return processedUrl;
+            // كحل بديل: استخدام عرض خرائط جوجل مع موقع افتراضي
+            console.warn('⚠️ لم يتمكن من تحويل الرابط، استخدام موقع افتراضي');
+            return `https://www.google.com/maps/embed/v1/view?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&center=29.3759,47.9774&zoom=12&language=ar&maptype=roadmap`;
         }
 
-        // 2. فتح خرائط جوجل داخل التطبيق - محسن
+        // 2. فتح خرائط جوجل داخل التطبيق - محسنة
         function openGoogleMapsInApp(orderId) {
             try {
                 console.log(`🗺️ فتح خرائط جوجل داخل التطبيق للطلب: ${orderId}`);
@@ -2180,44 +2198,57 @@
                     throw new Error(`الطلب ${orderId} غير موجود`);
                 }
                 
-                if (!order.location || order.location.trim() === '') {
-                    throw new Error('لا يوجد رابط خرائط جوجل متوفر');
+                // محاولة الحصول على رابط الخرائط من عدة مصادر
+                let mapsUrl = order.location || '';
+                
+                // إذا لم يكن هناك رابط خرائط، حاول إنشاء واحد من عنوان العميل
+                if (!mapsUrl || mapsUrl.trim() === '') {
+                    console.log('📝 لا يوجد رابط خرائط، محاولة إنشاء واحد من العنوان');
+                    const address = order.addressDetails || 'الكويت';
+                    mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
                 }
                 
                 currentOrderForMaps = order;
-                currentGoogleMapsUrl = order.location;
+                currentGoogleMapsUrl = mapsUrl;
                 
                 // إعداد عنوان النافذة
                 document.getElementById('embedded-maps-title').textContent = 
                     `خرائط جوجل - طلب #${order.id}`;
                 
                 // إظهار نافذة الخرائط
-                document.getElementById('embedded-maps-container').classList.add('active');
-                document.getElementById('maps-loading').style.display = 'flex';
+                const container = document.getElementById('embedded-maps-container');
+                const loading = document.getElementById('maps-loading');
+                
+                container.classList.add('active');
+                loading.style.display = 'flex';
                 
                 // معالجة الرابط للعرض في iframe
-                const embeddedUrl = processGoogleMapsUrlForEmbedding(order.location);
+                const embeddedUrl = processGoogleMapsUrlForEmbedding(mapsUrl);
                 
                 if (embeddedUrl) {
+                    console.log('🌐 تحميل الخريطة في iframe:', embeddedUrl);
+                    
                     // تحميل الخريطة في iframe
                     const iframe = document.getElementById('google-maps-iframe');
                     iframe.src = embeddedUrl;
                     
-                    // إخفاء شاشة التحميل بعد ثانيتين
-                    setTimeout(() => {
-                        document.getElementById('maps-loading').style.display = 'none';
-                    }, 2000);
+                    // إخفاء شاشة التحميل بعد تحميل الـ iframe
+                    iframe.onload = function() {
+                        console.log('✅ تم تحميل iframe الخريطة بنجاح');
+                        setTimeout(() => {
+                            loading.style.display = 'none';
+                        }, 500);
+                    };
                     
-                    console.log(`✅ تم فتح رابط خرائط جوجل داخل التطبيق: ${embeddedUrl}`);
+                    // إخفاء شاشة التحميل بعد مهلة زمنية
+                    setTimeout(() => {
+                        loading.style.display = 'none';
+                    }, 3000);
+                    
                 } else {
-                    // إذا فشل معالجة الرابط، نستخدم رابط افتراضي
-                    const defaultUrl = `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${order.addressDetails || 'الكويت'}&language=ar&maptype=roadmap&zoom=15`;
-                    const iframe = document.getElementById('google-maps-iframe');
-                    iframe.src = defaultUrl;
-                    
-                    setTimeout(() => {
-                        document.getElementById('maps-loading').style.display = 'none';
-                    }, 2000);
+                    console.error('❌ فشل في معالجة رابط الخرائط');
+                    showError('خطأ في الخرائط', 'تعذر تحميل خرائط جوجل');
+                    closeEmbeddedMaps();
                 }
                 
             } catch (error) {
@@ -2238,81 +2269,133 @@
 
         // 3. إغلاق خرائط جوجل المدمجة
         function closeEmbeddedMaps() {
-            const container = document.getElementById('embedded-maps-container');
-            const iframe = document.getElementById('google-maps-iframe');
-            
-            // إعادة تعيين iframe
-            iframe.src = 'about:blank';
-            
-            // إخفاء الحاوية
-            container.classList.remove('active');
-            
-            // إعادة إظهار شاشة التحميل
-            document.getElementById('maps-loading').style.display = 'flex';
-            
-            // تنظيف المتغيرات
-            currentGoogleMapsUrl = null;
-            currentOrderForMaps = null;
-            
-            console.log('✅ تم إغلاق خرائط جوجل المدمجة');
+            try {
+                console.log('🔒 إغلاق خرائط جوجل المدمجة');
+                
+                const container = document.getElementById('embedded-maps-container');
+                const iframe = document.getElementById('google-maps-iframe');
+                const loading = document.getElementById('maps-loading');
+                
+                // إعادة تعيين iframe
+                iframe.src = 'about:blank';
+                
+                // إخفاء الحاوية
+                container.classList.remove('active');
+                
+                // إعادة إظهار شاشة التحميل للمرة القادمة
+                loading.style.display = 'flex';
+                
+                // تنظيف المتغيرات
+                currentGoogleMapsUrl = null;
+                currentOrderForMaps = null;
+                
+                console.log('✅ تم إغلاق خرائط جوجل المدمجة بنجاح');
+                
+            } catch (error) {
+                console.error('❌ خطأ في إغلاق الخرائط:', error);
+            }
         }
 
         // 4. تحديث الخريطة
         function refreshEmbeddedMaps() {
-            const iframe = document.getElementById('google-maps-iframe');
-            const currentSrc = iframe.src;
-            
-            if (currentSrc && currentSrc !== 'about:blank') {
-                iframe.src = currentSrc;
-                console.log('✅ تم تحديث الخريطة');
+            try {
+                const iframe = document.getElementById('google-maps-iframe');
+                const loading = document.getElementById('maps-loading');
+                const currentSrc = iframe.src;
                 
-                // إظهار شاشة التحميل مؤقتاً
-                document.getElementById('maps-loading').style.display = 'flex';
-                setTimeout(() => {
-                    document.getElementById('maps-loading').style.display = 'none';
-                }, 1000);
+                if (currentSrc && currentSrc !== 'about:blank') {
+                    console.log('🔄 تحديث الخريطة...');
+                    
+                    // إظهار شاشة التحميل
+                    loading.style.display = 'flex';
+                    
+                    // إعادة تحميل iframe
+                    iframe.src = currentSrc;
+                    
+                    // إخفاء شاشة التحميل بعد تحميل الـ iframe
+                    iframe.onload = function() {
+                        setTimeout(() => {
+                            loading.style.display = 'none';
+                        }, 500);
+                    };
+                    
+                    // إخفاء شاشة التحميل بعد مهلة زمنية
+                    setTimeout(() => {
+                        loading.style.display = 'none';
+                    }, 3000);
+                    
+                    console.log('✅ تم تحديث الخريطة');
+                }
+            } catch (error) {
+                console.error('❌ خطأ في تحديث الخريطة:', error);
             }
         }
 
         // 5. فتح الاتجاهات في الخريطة المدمجة
         function openDirectionsInEmbeddedMaps() {
             try {
-                if (!currentOrderForMaps || !currentLocation) {
+                if (!currentOrderForMaps) {
                     Swal.fire({
                         icon: 'warning',
                         title: 'بيانات غير كافية',
-                        text: 'تعذر فتح الاتجاهات. يرجى التحقق من تفعيل خدمة الموقع',
+                        text: 'لم يتم تحديد طلب للتنقل إليه',
                         background: '#222',
                         color: '#fff'
                     });
                     return;
                 }
                 
-                // معالجة الرابط لفتح الاتجاهات
-                let directionsUrl = currentGoogleMapsUrl;
+                console.log('🧭 فتح الاتجاهات في الخريطة المدمجة');
                 
-                // محاولة استخراج الإحداثيات من الرابط
-                const coords = extractCoordinatesFromUrl(directionsUrl);
+                let destination = '';
                 
-                if (coords) {
-                    // إنشاء رابط الاتجاهات من الموقع الحالي
-                    directionsUrl = `https://www.google.com/maps/embed/v1/directions?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&origin=${currentLocation.lat},${currentLocation.lng}&destination=${coords.lat},${coords.lng}&mode=driving&language=ar&maptype=roadmap`;
-                } else if (currentOrderForMaps.addressDetails) {
-                    // استخدام عنوان العميل إذا لم نتمكن من استخراج الإحداثيات
-                    directionsUrl = `https://www.google.com/maps/embed/v1/directions?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&origin=${currentLocation.lat},${currentLocation.lng}&destination=${encodeURIComponent(currentOrderForMaps.addressDetails)}&mode=driving&language=ar&maptype=roadmap`;
-                } else {
-                    throw new Error('تعذر إنشاء رابط الاتجاهات');
+                // محاولة استخراج الإحداثيات من رابط الخرائط
+                if (currentGoogleMapsUrl) {
+                    const coordsMatch = currentGoogleMapsUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+                    if (coordsMatch) {
+                        destination = `${coordsMatch[1]},${coordsMatch[2]}`;
+                    }
                 }
+                
+                // إذا لم نستطع استخراج الإحداثيات، استخدم عنوان العميل
+                if (!destination && currentOrderForMaps.addressDetails) {
+                    destination = encodeURIComponent(currentOrderForMaps.addressDetails);
+                }
+                
+                if (!destination) {
+                    destination = 'الكويت'; // موقع افتراضي
+                }
+                
+                // إنشاء رابط الاتجاهات
+                let origin = '';
+                if (currentLocation) {
+                    origin = `${currentLocation.lat},${currentLocation.lng}`;
+                } else {
+                    origin = 'الكويت';
+                }
+                
+                const directionsUrl = `https://www.google.com/maps/embed/v1/directions?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&origin=${origin}&destination=${destination}&mode=driving&language=ar&maptype=roadmap`;
+                
+                console.log('🛣️ رابط الاتجاهات:', directionsUrl);
                 
                 // تحميل رابط الاتجاهات في الـ iframe
                 const iframe = document.getElementById('google-maps-iframe');
+                const loading = document.getElementById('maps-loading');
+                
+                loading.style.display = 'flex';
                 iframe.src = directionsUrl;
                 
-                // إظهار شاشة التحميل
-                document.getElementById('maps-loading').style.display = 'flex';
+                // إخفاء شاشة التحميل بعد تحميل الـ iframe
+                iframe.onload = function() {
+                    setTimeout(() => {
+                        loading.style.display = 'none';
+                    }, 500);
+                };
+                
+                // إخفاء شاشة التحميل بعد مهلة زمنية
                 setTimeout(() => {
-                    document.getElementById('maps-loading').style.display = 'none';
-                }, 2000);
+                    loading.style.display = 'none';
+                }, 3000);
                 
                 console.log('✅ تم فتح الاتجاهات في الخريطة المدمجة');
                 
@@ -2334,6 +2417,8 @@
                 if (!currentGoogleMapsUrl) {
                     throw new Error('لا يوجد رابط خرائط متوفر');
                 }
+                
+                console.log('🌍 فتح خرائط جوجل في تطبيق خارجي:', currentGoogleMapsUrl);
                 
                 // فتح الرابط في نافذة جديدة
                 window.open(currentGoogleMapsUrl, '_blank');
@@ -2360,32 +2445,7 @@
             }
         }
 
-        // 7. استخراج إحداثيات من رابط (للاستخدام الداخلي فقط)
-        function extractCoordinatesFromUrl(url) {
-            if (!url) return null;
-            
-            const patterns = [
-                /@(-?\d+\.\d+),(-?\d+\.\d+)/,
-                /[?&]q=(-?\d+\.\d+)[, ]+(-?\d+\.\d+)/,
-                /\/place\/(-?\d+\.\d+)[+, ]+(-?\d+\.\d+)/,
-            ];
-            
-            for (let pattern of patterns) {
-                const match = url.match(pattern);
-                if (match) {
-                    const lat = parseFloat(match[1]);
-                    const lng = parseFloat(match[2]);
-                    
-                    if (!isNaN(lat) && !isNaN(lng)) {
-                        return { lat, lng };
-                    }
-                }
-            }
-            
-            return null;
-        }
-
-        // 8. وظيفة العرض الرئيسية للتنقل - محسنة للشاشات الصغيرة
+        // 7. وظيفة العرض الرئيسية للتنقل - محسنة للشاشات الصغيرة
         function showNavigation(orderId) {
             try {
                 const order = [...activeOrders, ...pickedOrders].find(o => o.id == orderId);
@@ -2442,7 +2502,7 @@
             }
         }
 
-        // 9. فتح خرائط جوجل في تطبيق خارجي
+        // 8. فتح خرائط جوجل في تطبيق خارجي
         function openExternalGoogleMaps(encodedUrl, orderId) {
             try {
                 if (!encodedUrl) {
@@ -2450,6 +2510,7 @@
                 }
                 
                 const originalUrl = decodeURIComponent(encodedUrl);
+                console.log('🌍 فتح رابط خارجي:', originalUrl);
                 
                 // فتح الرابط في نافذة جديدة
                 window.open(originalUrl, '_blank');
@@ -2476,7 +2537,7 @@
             }
         }
 
-        // 10. عرض تفاصيل الرابط
+        // 9. عرض تفاصيل الرابط
         function showLinkDetails(encodedUrl, orderId) {
             try {
                 if (!encodedUrl) {
@@ -2532,6 +2593,15 @@
                                     text: 'تم نسخ الرابط إلى الحافظة',
                                     timer: 1500,
                                     showConfirmButton: false,
+                                    background: '#222',
+                                    color: '#fff'
+                                });
+                            }).catch(err => {
+                                console.error('❌ Failed to copy:', err);
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'خطأ في النسخ',
+                                    text: 'تعذر نسخ الرابط',
                                     background: '#222',
                                     color: '#fff'
                                 });
