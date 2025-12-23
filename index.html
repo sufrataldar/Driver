@@ -1241,7 +1241,7 @@
         }
         
         /* ========================================= */
-        /* خرائط جوجل داخل التطبيق - نسخة معدلة */
+        /* خرائط جوجل داخل التطبيق - نسخة معدلة ومحسنة */
         /* ========================================= */
         .embedded-maps-container {
             position: fixed;
@@ -1253,6 +1253,8 @@
             z-index: 3000;
             display: none;
             flex-direction: column;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
         }
         
         .embedded-maps-container.active {
@@ -1260,38 +1262,43 @@
         }
         
         .embedded-maps-header {
-            padding: 20px;
+            padding: 15px;
             background: var(--card);
             border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-shrink: 0;
+            min-height: 60px;
         }
         
         .embedded-maps-header h3 {
-            font-size: 1.4rem;
+            font-size: 1.2rem;
             font-weight: 900;
             color: var(--primary);
             margin: 0;
+            flex: 1;
+            text-align: center;
         }
         
         .embedded-maps-body {
             flex: 1;
             position: relative;
             overflow: hidden;
+            background: var(--dark);
         }
         
         .embedded-maps-iframe {
             width: 100%;
             height: 100%;
             border: none;
+            background: var(--dark);
         }
         
         .embedded-maps-controls {
             position: absolute;
             bottom: 20px;
-            right: 20px;
+            right: 15px;
             z-index: 1000;
             display: flex;
             flex-direction: column;
@@ -1355,24 +1362,6 @@
             font-weight: 600;
         }
         
-        /* خرائط جوجل مدمجة داخل iframe */
-        .google-iframe-container {
-            width: 100%;
-            height: 100%;
-            position: relative;
-        }
-        
-        .iframe-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: transparent;
-            z-index: 999;
-            pointer-events: none;
-        }
-        
         /* إخفاء النوافذ المنبثقة */
         .gm-style-cc,
         .gmnoprint,
@@ -1386,20 +1375,53 @@
             overscroll-behavior: contain;
         }
         
+        /* تحسينات للعرض على الموبايل */
+        .mobile-optimized-modal {
+            max-width: 95% !important;
+            width: 95% !important;
+            margin: 10px;
+        }
+        
         /* Responsive adjustments */
         @media (max-width: 768px) {
             .embedded-maps-header {
-                padding: 15px;
+                padding: 12px 15px;
             }
             
             .embedded-maps-header h3 {
-                font-size: 1.2rem;
+                font-size: 1.1rem;
             }
             
             .embedded-maps-btn {
                 width: 45px;
                 height: 45px;
                 font-size: 1.1rem;
+            }
+            
+            .navigation-modal-content {
+                max-width: 95%;
+                width: 95%;
+                margin: 10px;
+                padding: 20px;
+            }
+            
+            .navigation-option {
+                padding: 16px;
+                gap: 12px;
+            }
+            
+            .nav-icon {
+                width: 50px;
+                height: 50px;
+                font-size: 1.5rem;
+            }
+            
+            .nav-title {
+                font-size: 1rem;
+            }
+            
+            .nav-description {
+                font-size: 0.8rem;
             }
         }
         
@@ -1461,6 +1483,8 @@
             .status-modal-content {
                 padding: 25px 20px 20px;
                 border-radius: 20px;
+                max-width: 90%;
+                margin: 10px;
             }
             
             .status-modal-header h3 {
@@ -1486,6 +1510,22 @@
             .status-btn {
                 padding: 14px;
                 font-size: 0.95rem;
+            }
+            
+            /* تحسينات إضافية للخرائط على الموبايل */
+            .embedded-maps-header {
+                padding: 10px 15px;
+                min-height: 50px;
+            }
+            
+            .embedded-maps-header h3 {
+                font-size: 1rem;
+            }
+            
+            .embedded-maps-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 1rem;
             }
         }
         
@@ -1526,6 +1566,32 @@
             
             .status-modal-content {
                 padding: 22px 18px 18px;
+                max-width: 92%;
+            }
+            
+            .navigation-modal-content {
+                padding: 20px 15px;
+                max-width: 92%;
+            }
+            
+            .navigation-option {
+                padding: 14px;
+                gap: 10px;
+            }
+            
+            .nav-icon {
+                width: 45px;
+                height: 45px;
+                font-size: 1.4rem;
+                border-radius: 12px;
+            }
+            
+            .nav-title {
+                font-size: 0.95rem;
+            }
+            
+            .nav-description {
+                font-size: 0.75rem;
             }
         }
         
@@ -1536,6 +1602,10 @@
             }
             
             .status-modal-content {
+                max-width: 440px;
+            }
+            
+            .navigation-modal-content {
                 max-width: 440px;
             }
         }
@@ -2052,7 +2122,7 @@
         let lastTime = 0;
         
         // ==============================================
-        // 🗺️ نظام فتح خرائط جوجل داخل التطبيق
+        // 🗺️ نظام فتح خرائط جوجل داخل التطبيق - محسن
         // ==============================================
 
         // 1. دالة لمعالجة رابط خرائط جوجل لفتحه داخل iframe
@@ -2068,23 +2138,39 @@
             processedUrl = processedUrl.replace(/\/embed\?/, '/');
             processedUrl = processedUrl.replace(/\/@/, '/place/');
             
-            // إضافة معلمات لتحسين العرض في iframe
-            if (processedUrl.includes('google.com/maps')) {
-                // إذا كان رابط مباشر
-                if (!processedUrl.includes('?')) {
-                    processedUrl += '?';
-                } else {
-                    processedUrl += '&';
+            // إذا كان الرابط يحتوي على إحداثيات مباشرة
+            if (processedUrl.includes('@') && processedUrl.includes(',')) {
+                // استخراج الإحداثيات من الرابط
+                const coordsMatch = processedUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+                if (coordsMatch) {
+                    const lat = coordsMatch[1];
+                    const lng = coordsMatch[2];
+                    // إنشاء رابط مبسط
+                    processedUrl = `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${lat},${lng}&center=${lat},${lng}&zoom=15&language=ar&maptype=roadmap`;
                 }
-                
-                // إضافة معلمات لتحسين العرض
-                processedUrl += 'output=embed&hl=ar&z=15';
+            } else if (processedUrl.includes('maps.google.com') || processedUrl.includes('google.com/maps')) {
+                // إذا كان رابط خرائط جوجل عادي
+                if (!processedUrl.includes('embed')) {
+                    // تحويل الرابط إلى نسخة embed
+                    processedUrl = processedUrl.replace('https://www.google.com/maps/', 'https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=');
+                    processedUrl += '&language=ar&maptype=roadmap&zoom=15';
+                }
             }
+            
+            // إضافة معلمات لتحسين العرض في iframe
+            if (!processedUrl.includes('?')) {
+                processedUrl += '?';
+            } else {
+                processedUrl += '&';
+            }
+            
+            // إضافة معلمات لتحسين العرض
+            processedUrl += 'output=embed&hl=ar';
             
             return processedUrl;
         }
 
-        // 2. فتح خرائط جوجل داخل التطبيق
+        // 2. فتح خرائط جوجل داخل التطبيق - محسن
         function openGoogleMapsInApp(orderId) {
             try {
                 console.log(`🗺️ فتح خرائط جوجل داخل التطبيق للطلب: ${orderId}`);
@@ -2124,7 +2210,14 @@
                     
                     console.log(`✅ تم فتح رابط خرائط جوجل داخل التطبيق: ${embeddedUrl}`);
                 } else {
-                    throw new Error('تعذر معالجة رابط خرائط جوجل');
+                    // إذا فشل معالجة الرابط، نستخدم رابط افتراضي
+                    const defaultUrl = `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${order.addressDetails || 'الكويت'}&language=ar&maptype=roadmap&zoom=15`;
+                    const iframe = document.getElementById('google-maps-iframe');
+                    iframe.src = defaultUrl;
+                    
+                    setTimeout(() => {
+                        document.getElementById('maps-loading').style.display = 'none';
+                    }, 2000);
                 }
                 
             } catch (error) {
@@ -2173,15 +2266,11 @@
                 iframe.src = currentSrc;
                 console.log('✅ تم تحديث الخريطة');
                 
-                Swal.fire({
-                    icon: 'success',
-                    title: 'تم التحديث',
-                    text: 'تم تحديث الخريطة بنجاح',
-                    timer: 1500,
-                    showConfirmButton: false,
-                    background: '#222',
-                    color: '#fff'
-                });
+                // إظهار شاشة التحميل مؤقتاً
+                document.getElementById('maps-loading').style.display = 'flex';
+                setTimeout(() => {
+                    document.getElementById('maps-loading').style.display = 'none';
+                }, 1000);
             }
         }
 
@@ -2207,10 +2296,12 @@
                 
                 if (coords) {
                     // إنشاء رابط الاتجاهات من الموقع الحالي
-                    directionsUrl = `https://www.google.com/maps/dir/?api=1&origin=${currentLocation.lat},${currentLocation.lng}&destination=${coords.lat},${coords.lng}&travelmode=driving&hl=ar&z=15`;
+                    directionsUrl = `https://www.google.com/maps/embed/v1/directions?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&origin=${currentLocation.lat},${currentLocation.lng}&destination=${coords.lat},${coords.lng}&mode=driving&language=ar&maptype=roadmap`;
+                } else if (currentOrderForMaps.addressDetails) {
+                    // استخدام عنوان العميل إذا لم نتمكن من استخراج الإحداثيات
+                    directionsUrl = `https://www.google.com/maps/embed/v1/directions?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&origin=${currentLocation.lat},${currentLocation.lng}&destination=${encodeURIComponent(currentOrderForMaps.addressDetails)}&mode=driving&language=ar&maptype=roadmap`;
                 } else {
-                    // إذا لم نتمكن من استخراج الإحداثيات، نفتح الرابط الأصلي
-                    directionsUrl = processGoogleMapsUrlForEmbedding(currentGoogleMapsUrl);
+                    throw new Error('تعذر إنشاء رابط الاتجاهات');
                 }
                 
                 // تحميل رابط الاتجاهات في الـ iframe
@@ -2294,7 +2385,7 @@
             return null;
         }
 
-        // 8. وظيفة العرض الرئيسية للتنقل
+        // 8. وظيفة العرض الرئيسية للتنقل - محسنة للشاشات الصغيرة
         function showNavigation(orderId) {
             try {
                 const order = [...activeOrders, ...pickedOrders].find(o => o.id == orderId);
@@ -2461,7 +2552,7 @@
         }
 
         // ==============================================
-        // باقي دوال التطبيق (بدون تغيير)
+        // باقي دوال التطبيق
         // ==============================================
 
         // Initialize the application
