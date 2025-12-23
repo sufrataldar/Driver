@@ -44,6 +44,9 @@
             --order-status-delivered: #4CAF50;
             --order-status-cancelled: #ff4444;
             
+            --payment-cash: #00c851;
+            --payment-link: #2196F3;
+            
             --sheet-handle-height: 80px;
             --sheet-expanded-height: 55vh;
         }
@@ -545,6 +548,36 @@
             direction: ltr;
             text-align: right;
             font-family: monospace;
+        }
+        
+        /* طريقة الدفع في بطاقة الطلب */
+        .payment-method-badge {
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .payment-method {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+        
+        .payment-cash {
+            background: rgba(0, 200, 81, 0.15);
+            color: var(--payment-cash);
+            border: 1px solid rgba(0, 200, 81, 0.3);
+        }
+        
+        .payment-link {
+            background: rgba(33, 150, 243, 0.15);
+            color: var(--payment-link);
+            border: 1px solid rgba(33, 150, 243, 0.3);
         }
         
         .order-items-preview {
@@ -1882,6 +1915,10 @@
                     <div class="current-delivery-item">
                         <div class="current-delivery-label">رقم الطلب</div>
                         <div class="current-delivery-value" id="current-order-id">#0000</div>
+                    </div>
+                    <div class="current-delivery-item">
+                        <div class="current-delivery-label">طريقة الدفع</div>
+                        <div class="current-delivery-value" id="current-payment-method">...</div>
                     </div>
                     <div class="current-delivery-item">
                         <div class="current-delivery-label">المسافة المتبقية</div>
@@ -3314,6 +3351,16 @@
             orders.forEach(order => {
                 if (!order || !order.id) return;
                 
+                // تحديد طريقة الدفع الافتراضية إذا لم تكن موجودة
+                if (!order.paymentMethod) {
+                    order.paymentMethod = 'cash'; // قيمة افتراضية
+                }
+                
+                // تحويل paymentMethod إلى أحرف صغيرة للتعامل الموحد
+                if (order.paymentMethod) {
+                    order.paymentMethod = order.paymentMethod.toLowerCase();
+                }
+                
                 if (order.status === 'Ready' || order.status === 'Assigned') {
                     activeOrders.push(order);
                 } else if (order.status === 'Picked') {
@@ -3331,6 +3378,45 @@
                 playNewOrderSound();
                 console.log(`New order detected. Total active: ${activeOrders.length}`);
             }
+        }
+        
+        // الحصول على اسم طريقة الدفع (Cash أو Link فقط)
+        function getPaymentMethodName(paymentMethod) {
+            const paymentMethods = {
+                'cash': 'Payment Method : Cash',
+                'link': 'Payment Method : Link'
+            };
+            
+            // تحويل القيمة إلى أحرف صغيرة للتعامل الموحد
+            const method = paymentMethod ? paymentMethod.toLowerCase() : 'cash';
+            
+            return paymentMethods[method] || paymentMethods['cash'];
+        }
+        
+        // الحصول على أيقونة طريقة الدفع
+        function getPaymentMethodIcon(paymentMethod) {
+            const paymentIcons = {
+                'cash': 'fas fa-money-bill-wave',
+                'link': 'fas fa-external-link-alt'
+            };
+            
+            // تحويل القيمة إلى أحرف صغيرة للتعامل الموحد
+            const method = paymentMethod ? paymentMethod.toLowerCase() : 'cash';
+            
+            return paymentIcons[method] || paymentIcons['cash'];
+        }
+        
+        // الحصول على كلاس CSS لطريقة الدفع
+        function getPaymentMethodClass(paymentMethod) {
+            const paymentClasses = {
+                'cash': 'payment-cash',
+                'link': 'payment-link'
+            };
+            
+            // تحويل القيمة إلى أحرف صغيرة للتعامل الموحد
+            const method = paymentMethod ? paymentMethod.toLowerCase() : 'cash';
+            
+            return paymentClasses[method] || paymentClasses['cash'];
         }
         
         // Play new order sound
@@ -3474,6 +3560,12 @@
                 const customerName = order.customerName || 'عميل';
                 const customerInitial = customerName.charAt(0).toUpperCase();
                 
+                // طريقة الدفع
+                const paymentMethod = order.paymentMethod || 'cash';
+                const paymentName = getPaymentMethodName(paymentMethod);
+                const paymentIcon = getPaymentMethodIcon(paymentMethod);
+                const paymentClass = getPaymentMethodClass(paymentMethod);
+                
                 html += `
                     <div class="order-item-card" onclick="selectOrder(${order.id})" data-order-id="${order.id}">
                         <div class="order-item-header">
@@ -3489,6 +3581,12 @@
                                 <div class="customer-details">
                                     <div class="customer-name">${customerName}</div>
                                     <div class="customer-phone">${order.phone || ''}</div>
+                                    <div class="payment-method-badge">
+                                        <div class="payment-method ${paymentClass}">
+                                            <i class="${paymentIcon}"></i>
+                                            ${paymentName}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             
@@ -3727,6 +3825,12 @@
                 });
             }
             
+            // طريقة الدفع
+            const paymentMethod = order.paymentMethod || 'cash';
+            const paymentName = getPaymentMethodName(paymentMethod);
+            const paymentIcon = getPaymentMethodIcon(paymentMethod);
+            const paymentClass = getPaymentMethodClass(paymentMethod);
+            
             // عرض رابط Google Maps
             const locationInfo = order.location ? 
                 `<div class="detail-item">
@@ -3767,6 +3871,15 @@
                         <div class="detail-item">
                             <div class="detail-label">وقت الطلب</div>
                             <div class="detail-value">${timeString}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">طريقة الدفع</div>
+                            <div class="detail-value">
+                                <div class="payment-method ${paymentClass}" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 12px;">
+                                    <i class="${paymentIcon}"></i>
+                                    ${paymentName}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -3831,9 +3944,42 @@
         // Pick an order (mark as picked up)
         async function pickOrder(orderId) {
             try {
+                const order = [...activeOrders].find(o => o.id == orderId);
+                if (!order) return;
+                
+                const paymentMethod = order.paymentMethod || 'cash';
+                const paymentName = getPaymentMethodName(paymentMethod);
+                
+                let paymentMessage = '';
+                if (paymentMethod.toLowerCase() === 'cash') {
+                    paymentMessage = 'سيقوم العميل بالدفع نقداً عند الاستلام. يرجى استلام المبلغ من العميل.';
+                } else if (paymentMethod.toLowerCase() === 'link') {
+                    paymentMessage = 'تم الدفع إلكترونياً بالرابط مسبقاً. لا تحتاج لاستلام أي مبلغ.';
+                } else {
+                    paymentMessage = 'يرجى التحقق من طريقة الدفع مع العميل.';
+                }
+                
                 const result = await Swal.fire({
                     title: 'تأكيد استلام الطلب',
-                    text: `هل أنت متأكد من استلام الطلب رقم #${orderId} من المطبخ؟`,
+                    html: `
+                        <div style="text-align: center;">
+                            <div style="margin-bottom: 15px;">
+                                <i class="fas fa-shopping-bag fa-2x" style="color: var(--primary);"></i>
+                            </div>
+                            <div style="font-size: 1.1rem; margin-bottom: 10px;">
+                                هل أنت متأكد من استلام الطلب رقم #${orderId}؟
+                            </div>
+                            <div style="background: var(--card-light); padding: 15px; border-radius: 10px; margin: 15px 0;">
+                                <div style="color: var(--text); font-weight: 700; margin-bottom: 8px;">
+                                    <i class="${getPaymentMethodIcon(paymentMethod)}"></i>
+                                    طريقة الدفع: ${paymentName}
+                                </div>
+                                <div style="color: var(--text-gray); font-size: 0.9rem;">
+                                    ${paymentMessage}
+                                </div>
+                            </div>
+                        </div>
+                    `,
                     icon: 'question',
                     showCancelButton: true,
                     confirmButtonText: 'نعم، تم الاستلام',
@@ -3883,7 +4029,6 @@
                         
                         loadOrders();
                         
-                        const order = [...activeOrders, ...pickedOrders].find(o => o.id == orderId);
                         if (order) {
                             // عرض خيارات التنقل بعد الاستلام
                             setTimeout(() => {
@@ -3909,13 +4054,45 @@
         // Mark order as delivered
         async function markDelivered(orderId) {
             try {
+                const order = [...pickedOrders].find(o => o.id == orderId);
+                if (!order) return;
+                
+                const paymentMethod = order.paymentMethod || 'cash';
+                const paymentName = getPaymentMethodName(paymentMethod);
+                
+                let paymentMessage = '';
+                if (paymentMethod.toLowerCase() === 'cash') {
+                    paymentMessage = 'يرجى التأكد من استلام المبلغ نقداً من العميل قبل تأكيد التوصيل.';
+                } else if (paymentMethod.toLowerCase() === 'link') {
+                    paymentMessage = 'تم الدفع إلكترونياً مسبقاً، لا تحتاج لاستلام أي مبلغ.';
+                } else {
+                    paymentMessage = 'يرجى التأكد من طريقة الدفع مع العميل.';
+                }
+                
                 const result = await Swal.fire({
                     title: 'تأكيد التوصيل',
-                    text: `هل أنت متأكد من توصيل الطلب رقم #${orderId} للعميل؟`,
-                    icon: 'question',
-                    input: 'text',
-                    inputLabel: 'ملاحظات التوصيل (اختياري)',
-                    inputPlaceholder: 'مثال: تم التسليم للعميل مباشرة',
+                    html: `
+                        <div style="text-align: center;">
+                            <div style="margin-bottom: 15px;">
+                                <i class="fas fa-check-circle fa-2x" style="color: var(--success);"></i>
+                            </div>
+                            <div style="font-size: 1.1rem; margin-bottom: 10px;">
+                                هل أنت متأكد من توصيل الطلب رقم #${orderId}؟
+                            </div>
+                            <div style="background: var(--card-light); padding: 15px; border-radius: 10px; margin: 15px 0;">
+                                <div style="color: var(--text); font-weight: 700; margin-bottom: 8px;">
+                                    <i class="${getPaymentMethodIcon(paymentMethod)}"></i>
+                                    طريقة الدفع: ${paymentName}
+                                </div>
+                                <div style="color: var(--text-gray); font-size: 0.9rem;">
+                                    ${paymentMessage}
+                                </div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <input type="text" id="delivery-notes" class="swal2-input" placeholder="ملاحظات التوصيل (اختياري)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text);">
+                        </div>
+                    `,
                     showCancelButton: true,
                     confirmButtonText: 'نعم، تم التوصيل',
                     cancelButtonText: 'إلغاء',
@@ -3924,6 +4101,11 @@
                     allowOutsideClick: false,
                     showClass: {
                         popup: 'animate__animated animate__fadeInDown'
+                    },
+                    preConfirm: () => {
+                        return {
+                            notes: document.getElementById('delivery-notes').value
+                        };
                     }
                 });
                 
@@ -3932,7 +4114,7 @@
                     params.append('action', 'markDelivered');
                     params.append('orderId', orderId);
                     params.append('driverId', driverId);
-                    params.append('notes', result.value || '');
+                    params.append('notes', result.value.notes || '');
                     params.append('timestamp', Date.now());
                     
                     if (connectionToken) {
@@ -3994,6 +4176,16 @@
             
             document.getElementById('current-order-id').textContent = `#${order.id}`;
             document.getElementById('current-address').textContent = order.addressDetails || order.location || 'العنوان غير محدد';
+            
+            // عرض طريقة الدفع
+            const paymentMethod = order.paymentMethod || 'cash';
+            const paymentName = getPaymentMethodName(paymentMethod);
+            const paymentIcon = getPaymentMethodIcon(paymentMethod);
+            
+            document.getElementById('current-payment-method').innerHTML = `
+                <i class="${paymentIcon}" style="margin-left: 5px;"></i>
+                ${paymentName}
+            `;
             
             if (currentRoute) {
                 updateDeliveryInfo(currentRoute);
