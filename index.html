@@ -266,24 +266,46 @@
             color: var(--primary) !important;
         }
         
-        /* مسار برتقالي مخصص */
-        .leaflet-routing-line {
+        /* مسار برتقالي مخصص مع تأثير التلاشي */
+        .fading-route {
             stroke: #ff6600 !important;
             stroke-width: 6 !important;
-            stroke-opacity: 0.9 !important;
-            stroke-dasharray: none !important;
-            animation: routePulse 2s infinite !important;
+            stroke-opacity: 1 !important;
+            stroke-linecap: round !important;
+            stroke-linejoin: round !important;
+            stroke-dasharray: 10, 5 !important;
+            animation: flow 3s linear infinite !important;
+            filter: drop-shadow(0 0 3px rgba(255, 102, 0, 0.7)) !important;
         }
         
-        .leaflet-routing-line:hover {
-            stroke: #ff944d !important;
-            stroke-width: 7 !important;
+        @keyframes flow {
+            0% { stroke-dashoffset: 15; }
+            100% { stroke-dashoffset: 0; }
         }
         
-        @keyframes routePulse {
-            0% { stroke-opacity: 0.7; }
-            50% { stroke-opacity: 1; }
-            100% { stroke-opacity: 0.7; }
+        /* تأثير التلاشي التدريجي */
+        .fading-effect {
+            position: relative;
+        }
+        
+        .fading-effect::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                rgba(255, 102, 0, 0.9) 0%, 
+                rgba(255, 102, 0, 0.6) 30%, 
+                rgba(255, 102, 0, 0.3) 60%, 
+                rgba(255, 102, 0, 0) 100%);
+            animation: fadeMove 3s linear infinite;
+        }
+        
+        @keyframes fadeMove {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
         }
         
         /* شريط الطلبات الجديد */
@@ -832,6 +854,24 @@
             background: linear-gradient(90deg, var(--primary), var(--primary-dark));
             width: 0%;
             transition: width 0.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 20px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            animation: progressShine 1.5s infinite;
+        }
+        
+        @keyframes progressShine {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(500%); }
         }
         
         .close-modal {
@@ -1624,7 +1664,7 @@
         
         .orders-sheet.dragging .drag-handle {
             background: var(--primary);
-            transform: scaleX(1.1);
+            transform: scaleX(1.2);
         }
         
         /* تأثيرات جديدة للخريطة عند السحب */
@@ -2111,6 +2151,12 @@
         let isConnected = false;
         let routeInterval = null;
         let destinationMarker = null;
+        let customRouteLayer = null;
+        let isNavigationActive = false;
+        let fadingRouteInterval = null;
+        let lastKnownLocation = null;
+        let remainingRouteCoordinates = [];
+        let routeProgress = 0;
         
         // متغيرات التحكم بالشريط السفلي
         let isDraggingSheet = false;
@@ -2125,7 +2171,7 @@
         let lastTime = 0;
         
         // ==============================================
-        // 🗺️ نظام معالجة خرائط جوجل والتنقل المحلي
+        // 🗺️ نظام معالجة خرائط جوجل والتنقل المحلي مع المسار البرتقالي
         // ==============================================
 
         // 1. استخراج الإحداثيات من رابط خرائط جوجل
@@ -2306,7 +2352,7 @@
             
             // بدء حساب المسار إذا كان موقع السائق معروفاً
             if (currentLocation) {
-                calculateAndShowRoute(currentLocation.lat, currentLocation.lng, lat, lng, order);
+                calculateAndShowFadingRoute(currentLocation.lat, currentLocation.lng, lat, lng, order);
             } else {
                 // انتظار تحديد موقع السائق
                 Swal.fire({
@@ -2323,7 +2369,7 @@
                 
                 locateMe().then(location => {
                     Swal.close();
-                    calculateAndShowRoute(location.lat, location.lng, lat, lng, order);
+                    calculateAndShowFadingRoute(location.lat, location.lng, lat, lng, order);
                 }).catch(error => {
                     Swal.close();
                     showError('خطأ في الموقع', 'تعذر تحديد موقعك. يرجى تفعيل خدمات الموقع.');
@@ -2379,57 +2425,20 @@
             map.setView([lat, lng], 15);
         }
 
-        // 6. حساب وعرض المسار
-        function calculateAndShowRoute(startLat, startLng, endLat, endLng, order) {
-            console.log('🛣️ حساب المسار...');
+        // 6. حساب وعرض المسار مع تأثير التلاشي
+        function calculateAndShowFadingRoute(startLat, startLng, endLat, endLng, order) {
+            console.log('🛣️ حساب المسار مع تأثير التلاشي...');
             
             // إزالة المسار السابق إذا كان موجوداً
+            if (customRouteLayer) {
+                map.removeLayer(customRouteLayer);
+                customRouteLayer = null;
+            }
+            
             if (routingControl) {
                 map.removeControl(routingControl);
                 routingControl = null;
             }
-            
-            // إنشاء نقاط البداية والنهاية
-            const startPoint = L.latLng(startLat, startLng);
-            const endPoint = L.latLng(endLat, endLng);
-            
-            // إنشاء وحدة تحكم المسار
-            routingControl = L.Routing.control({
-                waypoints: [startPoint, endPoint],
-                routeWhileDragging: false,
-                showAlternatives: false,
-                altLineOptions: {
-                    styles: [
-                        {color: '#666', opacity: 0.5, weight: 3}
-                    ]
-                },
-                lineOptions: {
-                    styles: [
-                        {color: '#ff6600', opacity: 0.9, weight: 6}
-                    ],
-                    extendToWaypoints: true,
-                    missingRouteTolerance: 10
-                },
-                createMarker: function(i, waypoint, n) {
-                    // عدم إنشاء علامات تلقائية
-                    return null;
-                },
-                router: L.Routing.osrmv1({
-                    serviceUrl: 'https://router.project-osrm.org/route/v1',
-                    profile: 'driving',
-                    language: 'ar'
-                })
-            }).addTo(map);
-            
-            // تحديث معلومات المسار عند الانتهاء من الحساب
-            routingControl.on('routesfound', function(e) {
-                const routes = e.routes;
-                if (routes && routes.length > 0) {
-                    currentRoute = routes[0];
-                    showRouteInfo(currentRoute, order);
-                    startRouteTracking();
-                }
-            });
             
             // إظهار معلومات التحميل
             Swal.fire({
@@ -2441,9 +2450,400 @@
                 background: '#222',
                 color: '#fff'
             });
+            
+            // إنشاء نقاط البداية والنهاية
+            const startPoint = L.latLng(startLat, startLng);
+            const endPoint = L.latLng(endLat, endLng);
+            
+            // استخدام OSRM لحساب المسار
+            const routingService = L.Routing.osrmv1({
+                serviceUrl: 'https://router.project-osrm.org/route/v1',
+                profile: 'driving',
+                language: 'ar'
+            });
+            
+            // حساب المسار
+            routingService.route([startPoint, endPoint], (err, routes) => {
+                if (err) {
+                    console.error('❌ Error calculating route:', err);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ في حساب المسار',
+                        text: 'تعذر حساب المسار. يرجى المحاولة مرة أخرى.',
+                        background: '#222',
+                        color: '#fff'
+                    });
+                    return;
+                }
+                
+                if (routes && routes.length > 0) {
+                    currentRoute = routes[0];
+                    showRouteInfo(currentRoute, order);
+                    
+                    // رسم المسار مع تأثير التلاشي
+                    drawFadingRoute(currentRoute);
+                    
+                    // بدء تحديث المسار مع حركة السائق
+                    isNavigationActive = true;
+                    startRouteTracking();
+                    
+                    // عرض رسالة نجاح
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'تم إنشاء المسار البرتقالي',
+                        html: `
+                            <div style="text-align: center;">
+                                <div style="margin-bottom: 15px;">
+                                    <i class="fas fa-route fa-2x" style="color: var(--primary);"></i>
+                                </div>
+                                <div style="font-size: 1.1rem; margin-bottom: 10px;">
+                                    تم إنشاء المسار بنجاح
+                                </div>
+                                <div style="background: var(--card-light); padding: 15px; border-radius: 10px; margin: 10px 0;">
+                                    <div style="color: var(--text); font-weight: 700;">
+                                        المسافة: ${(currentRoute.summary.totalDistance / 1000).toFixed(1)} كم
+                                    </div>
+                                    <div style="color: var(--text-gray); font-size: 0.9rem; margin-top: 5px;">
+                                        الوقت المتوقع: ${Math.round(currentRoute.summary.totalTime / 60)} دقيقة
+                                    </div>
+                                </div>
+                                <div style="margin-top: 10px; color: var(--text-gray); font-size: 0.85rem;">
+                                    <i class="fas fa-info-circle"></i> سيبدأ المسار بالتلاشي أثناء تحركك
+                                </div>
+                            </div>
+                        `,
+                        timer: 3000,
+                        showConfirmButton: false,
+                        background: '#222',
+                        color: '#fff'
+                    });
+                }
+            });
         }
 
-        // 7. إظهار معلومات المسار
+        // 7. رسم المسار مع تأثير التلاشي
+        function drawFadingRoute(route) {
+            if (!route || !route.coordinates || route.coordinates.length < 2) {
+                console.error('❌ Invalid route data');
+                return;
+            }
+            
+            // تخزين إحداثيات المسار
+            remainingRouteCoordinates = route.coordinates.map(coord => [coord.lat, coord.lng]);
+            
+            // رسم المسار الكامل
+            customRouteLayer = L.polyline(remainingRouteCoordinates, {
+                color: '#ff6600',
+                weight: 6,
+                opacity: 1,
+                lineCap: 'round',
+                lineJoin: 'round',
+                dashArray: '10, 5',
+                className: 'fading-route'
+            }).addTo(map);
+            
+            // بدء تأثير التلاشي
+            startFadingEffect();
+        }
+
+        // 8. بدء تأثير التلاشي التدريجي
+        function startFadingEffect() {
+            if (fadingRouteInterval) {
+                clearInterval(fadingRouteInterval);
+            }
+            
+            routeProgress = 0;
+            
+            // تحديث تأثير التلاشي كل 100 مللي ثانية
+            fadingRouteInterval = setInterval(() => {
+                if (!isNavigationActive || remainingRouteCoordinates.length < 2) {
+                    clearInterval(fadingRouteInterval);
+                    return;
+                }
+                
+                // زيادة التقدم تدريجياً
+                routeProgress += 0.5;
+                
+                // حساب عدد النقاط التي يجب أن تظهر
+                const visiblePoints = Math.min(
+                    Math.floor((routeProgress / 100) * remainingRouteCoordinates.length),
+                    remainingRouteCoordinates.length
+                );
+                
+                // إذا كان السائق يتحرك، نعتمد على موقعه الفعلي
+                if (lastKnownLocation && routeProgress > 10) {
+                    // إعادة حساب المسار من الموقع الحالي
+                    recalculateRouteFromCurrentPosition();
+                }
+                
+                // تحديث الخط المرئي
+                updateVisibleRoute(visiblePoints);
+                
+                // إذا وصلنا للنهاية، إيقاف التأثير
+                if (routeProgress >= 100) {
+                    clearInterval(fadingRouteInterval);
+                    completeRoute();
+                }
+            }, 100);
+        }
+
+        // 9. تحديث الجزء المرئي من المسار
+        function updateVisibleRoute(visiblePoints) {
+            if (visiblePoints < 2 || remainingRouteCoordinates.length < 2) {
+                return;
+            }
+            
+            // إزالة الطبقة القديمة
+            if (customRouteLayer) {
+                map.removeLayer(customRouteLayer);
+            }
+            
+            // أخذ النقاط المرئية فقط
+            const visibleCoordinates = remainingRouteCoordinates.slice(0, visiblePoints);
+            
+            // تطبيق تأثير التدرج للون
+            const gradientStyle = {
+                color: '#ff6600',
+                weight: 6,
+                opacity: 1,
+                lineCap: 'round',
+                lineJoin: 'round',
+                dashArray: '10, 5',
+                className: 'fading-route'
+            };
+            
+            // رسم الخط المرئي
+            customRouteLayer = L.polyline(visibleCoordinates, gradientStyle).addTo(map);
+            
+            // إضافة تأثير التلاشي للنقاط الأخيرة
+            addFadingEffectToEnd(visibleCoordinates);
+        }
+
+        // 10. إضافة تأثير التلاشي للنهاية
+        function addFadingEffectToEnd(coordinates) {
+            if (coordinates.length < 10) return;
+            
+            // أخذ آخر 10 نقاط لتطبيق تأثير التلاشي
+            const endPoints = coordinates.slice(-10);
+            
+            // رسم خط إضافي بألوان متدرجة
+            const fadingLine = L.polyline(endPoints, {
+                color: '#ff944d',
+                weight: 4,
+                opacity: 0.7,
+                lineCap: 'round',
+                lineJoin: 'round',
+                dashArray: '5, 3'
+            }).addTo(map);
+            
+            // إخفاء الخط المؤقت بعد فترة
+            setTimeout(() => {
+                if (map.hasLayer(fadingLine)) {
+                    map.removeLayer(fadingLine);
+                }
+            }, 1000);
+        }
+
+        // 11. إعادة حساب المسار من الموقع الحالي
+        function recalculateRouteFromCurrentPosition() {
+            if (!lastKnownLocation || remainingRouteCoordinates.length < 2) {
+                return;
+            }
+            
+            // حساب أقرب نقطة على المسار للموقع الحالي
+            let nearestPointIndex = 0;
+            let minDistance = Infinity;
+            
+            for (let i = 0; i < remainingRouteCoordinates.length; i++) {
+                const point = remainingRouteCoordinates[i];
+                const distance = calculateDistance(
+                    lastKnownLocation.lat, lastKnownLocation.lng,
+                    point[0], point[1]
+                );
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestPointIndex = i;
+                }
+            }
+            
+            // إذا كنا على بعد أكثر من 50 متراً من المسار، نحتاج لإعادة الحساب
+            if (minDistance > 50 && nearestPointIndex > 0) {
+                // إزالة النقاط التي قطعناها
+                remainingRouteCoordinates = remainingRouteCoordinates.slice(nearestPointIndex);
+                
+                // إعادة ضبط التقدم
+                routeProgress = (nearestPointIndex / remainingRouteCoordinates.length) * 100;
+                
+                // تحديث الجزء المرئي
+                const visiblePoints = Math.floor((routeProgress / 100) * remainingRouteCoordinates.length);
+                updateVisibleRoute(visiblePoints);
+            }
+        }
+
+        // 12. بدء تتبع المسار
+        function startRouteTracking() {
+            if (routeInterval) {
+                clearInterval(routeInterval);
+            }
+            
+            // تحديث الموقع كل 5 ثواني أثناء التنقل
+            routeInterval = setInterval(() => {
+                if (currentLocation && currentRoute) {
+                    lastKnownLocation = { ...currentLocation };
+                    updateRouteProgress();
+                }
+            }, 5000);
+            
+            console.log('✅ بدأ تتبع المسار مع تأثير التلاشي');
+        }
+
+        // 13. تحديث تقدم المسار
+        function updateRouteProgress() {
+            if (!currentLocation || !remainingRouteCoordinates.length) return;
+            
+            // حساب المسافة المقطوعة
+            const progressBar = document.getElementById('delivery-progress');
+            if (progressBar) {
+                const currentWidth = parseInt(progressBar.style.width) || 0;
+                if (currentWidth < 100) {
+                    const newWidth = Math.min(currentWidth + 2, 100);
+                    progressBar.style.width = `${newWidth}%`;
+                }
+            }
+            
+            // تحديث معلومات المسار
+            updateRouteInfo();
+        }
+
+        // 14. تحديث معلومات المسار
+        function updateRouteInfo() {
+            if (!currentLocation || !remainingRouteCoordinates.length) return;
+            
+            // حساب المسافة المتبقية
+            let remainingDistance = 0;
+            for (let i = 0; i < remainingRouteCoordinates.length - 1; i++) {
+                remainingDistance += calculateDistance(
+                    remainingRouteCoordinates[i][0], remainingRouteCoordinates[i][1],
+                    remainingRouteCoordinates[i + 1][0], remainingRouteCoordinates[i + 1][1]
+                );
+            }
+            
+            // حساب الوقت المتبقي (بافتراض سرعة 40 كم/ساعة)
+            const remainingTime = (remainingDistance / 1000) / 40 * 60;
+            
+            document.getElementById('current-distance').textContent = `${(remainingDistance / 1000).toFixed(1)} كم`;
+            document.getElementById('current-eta').textContent = `${Math.round(remainingTime)} دقيقة`;
+            
+            document.getElementById('route-distance').textContent = `${(remainingDistance / 1000).toFixed(1)} كم`;
+            document.getElementById('route-time').textContent = `${Math.round(remainingTime)} دقيقة`;
+        }
+
+        // 15. اكتمال المسار
+        function completeRoute() {
+            console.log('✅ اكتمال المسار');
+            isNavigationActive = false;
+            
+            // إكمال شريط التقدم
+            const progressBar = document.getElementById('delivery-progress');
+            if (progressBar) {
+                progressBar.style.width = '100%';
+            }
+            
+            // إخفاء المسار
+            if (customRouteLayer) {
+                map.removeLayer(customRouteLayer);
+                customRouteLayer = null;
+            }
+            
+            // إظهار رسالة الوصول
+            Swal.fire({
+                icon: 'success',
+                title: 'لقد وصلت إلى الوجهة!',
+                text: 'أنت الآن في موقع العميل',
+                timer: 3000,
+                showConfirmButton: false,
+                background: '#222',
+                color: '#fff'
+            });
+        }
+
+        // 16. حساب المسافة بين نقطتين
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // نصف قطر الأرض بالأمتار
+            const φ1 = lat1 * Math.PI / 180;
+            const φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
+            
+            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            
+            return R * c;
+        }
+
+        // 17. مسح المسار
+        function clearRoute() {
+            isNavigationActive = false;
+            
+            if (customRouteLayer) {
+                map.removeLayer(customRouteLayer);
+                customRouteLayer = null;
+            }
+            
+            if (routingControl) {
+                map.removeControl(routingControl);
+                routingControl = null;
+            }
+            
+            if (destinationMarker) {
+                map.removeLayer(destinationMarker);
+                destinationMarker = null;
+            }
+            
+            if (routeInterval) {
+                clearInterval(routeInterval);
+                routeInterval = null;
+            }
+            
+            if (fadingRouteInterval) {
+                clearInterval(fadingRouteInterval);
+                fadingRouteInterval = null;
+            }
+            
+            document.getElementById('route-info-box').classList.remove('active');
+            document.getElementById('current-delivery').classList.remove('active');
+            
+            // إعادة تعيين شريط التقدم
+            const progressBar = document.getElementById('delivery-progress');
+            if (progressBar) {
+                progressBar.style.width = '0%';
+            }
+            
+            // إعادة تعيين المتغيرات
+            remainingRouteCoordinates = [];
+            routeProgress = 0;
+            lastKnownLocation = null;
+            
+            Swal.fire({
+                icon: 'info',
+                title: 'تم مسح المسار',
+                text: 'تم إزالة المسار والوجهة من الخريطة',
+                timer: 2000,
+                showConfirmButton: false,
+                background: '#222',
+                color: '#fff'
+            });
+        }
+
+        // 18. إخفاء معلومات المسار
+        function hideRouteInfo() {
+            document.getElementById('route-info-box').classList.remove('active');
+        }
+
+        // 19. إظهار معلومات المسار
         function showRouteInfo(route, order) {
             const distance = (route.summary.totalDistance / 1000).toFixed(1);
             const time = Math.round(route.summary.totalTime / 60);
@@ -2465,108 +2865,9 @@
             
             // إظهار معلومات التوصيل الحالي
             document.getElementById('current-delivery').classList.add('active');
-            
-            // عرض رسالة نجاح
-            Swal.fire({
-                icon: 'success',
-                title: 'تم إنشاء المسار',
-                html: `
-                    <div style="text-align: center;">
-                        <div style="margin-bottom: 15px;">
-                            <i class="fas fa-route fa-2x" style="color: var(--primary);"></i>
-                        </div>
-                        <div style="font-size: 1.1rem; margin-bottom: 10px;">
-                            تم إنشاء المسار بنجاح
-                        </div>
-                        <div style="background: var(--card-light); padding: 15px; border-radius: 10px; margin: 10px 0;">
-                            <div style="color: var(--text); font-weight: 700;">
-                                المسافة: ${distance} كم
-                            </div>
-                            <div style="color: var(--text-gray); font-size: 0.9rem; margin-top: 5px;">
-                                الوقت المتوقع: ${time} دقيقة
-                            </div>
-                        </div>
-                    </div>
-                `,
-                timer: 3000,
-                showConfirmButton: false,
-                background: '#222',
-                color: '#fff'
-            });
         }
 
-        // 8. بدء تتبع المسار
-        function startRouteTracking() {
-            if (routeInterval) {
-                clearInterval(routeInterval);
-            }
-            
-            // تحديث الموقع كل 10 ثواني أثناء التنقل
-            routeInterval = setInterval(() => {
-                if (currentLocation && currentRoute) {
-                    updateRouteProgress();
-                }
-            }, 10000);
-            
-            console.log('✅ بدأ تتبع المسار');
-        }
-
-        // 9. تحديث تقدم المسار
-        function updateRouteProgress() {
-            // هذه وظيفة بسيطة لتحديث التقدم
-            // في تطبيق حقيقي، يمكن حساب المسافة المتبقية بدقة
-            const progressBar = document.getElementById('delivery-progress');
-            if (progressBar) {
-                const currentWidth = parseInt(progressBar.style.width) || 0;
-                if (currentWidth < 100) {
-                    progressBar.style.width = `${currentWidth + 5}%`;
-                }
-            }
-        }
-
-        // 10. مسح المسار
-        function clearRoute() {
-            if (routingControl) {
-                map.removeControl(routingControl);
-                routingControl = null;
-            }
-            
-            if (destinationMarker) {
-                map.removeLayer(destinationMarker);
-                destinationMarker = null;
-            }
-            
-            if (routeInterval) {
-                clearInterval(routeInterval);
-                routeInterval = null;
-            }
-            
-            document.getElementById('route-info-box').classList.remove('active');
-            document.getElementById('current-delivery').classList.remove('active');
-            
-            // إعادة تعيين شريط التقدم
-            const progressBar = document.getElementById('delivery-progress');
-            if (progressBar) {
-                progressBar.style.width = '0%';
-            }
-            
-            Swal.fire({
-                icon: 'info',
-                title: 'تم مسح المسار',
-                text: 'تم إزالة المسار والوجهة من الخريطة',
-                timer: 2000,
-                showConfirmButton: false,
-                background: '#222',
-                color: '#fff'
-            });
-        }
-
-        // 11. إخفاء معلومات المسار
-        function hideRouteInfo() {
-            document.getElementById('route-info-box').classList.remove('active');
-        }
-
-        // 12. بدء التنقل - الوظيفة الرئيسية
+        // 20. بدء التنقل - الوظيفة الرئيسية
         function startNavigation(orderId) {
             console.log(`🧭 بدء التنقل للطلب: ${orderId}`);
             
@@ -2606,7 +2907,7 @@
                     </div>
                     <div class="nav-info">
                         <div class="nav-title">بدء التنقل الذكي</div>
-                        <div class="nav-description">استخراج الإحداثيات من رابط الخرائط وإنشاء المسار</div>
+                        <div class="nav-description">استخراج الإحداثيات من رابط الخرائط وإنشاء المسار البرتقالي</div>
                     </div>
                 </div>
                 
@@ -2747,7 +3048,7 @@
         }
 
         // ==============================================
-        // باقي دوال التطبيق
+        // باقي دوال التطبيق (بدون تغيير)
         // ==============================================
 
         // Initialize the application
@@ -3922,7 +4223,7 @@
             // زر بدء التنقل
             const navigateButton = `
                 <div style="margin-top: 15px;">
-                    <button class="order-action-btn action-navigate" style="width: 100%;" onclick="startNavigationOptions(${order.id}); closeOrderModal();">
+                    <button class="order-action-btn action-navigate" style="width: 100%;" onclick="showNavigationOptions(${order.id}); closeOrderModal();">
                         <i class="fas fa-directions"></i> بدء التنقل إلى العميل
                     </button>
                 </div>
@@ -4564,6 +4865,7 @@
             if (locationInterval) clearInterval(locationInterval);
             if (heartbeatInterval) clearInterval(heartbeatInterval);
             if (routeInterval) clearInterval(routeInterval);
+            if (fadingRouteInterval) clearInterval(fadingRouteInterval);
         });
         
         // تحسين الأداء على الموبايل
